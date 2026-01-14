@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function LandingPage() {
     return (
         <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white transition-colors duration-200 min-h-screen">
@@ -32,12 +34,12 @@ export default function LandingPage() {
                         </a>
                     </nav>
                     <div className="flex items-center gap-4">
-                        <button className="hidden sm:flex text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-white transition-colors">
+                        <Link to="/login" className="hidden sm:flex text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-white transition-colors">
                             Log In
-                        </button>
-                        <button className="bg-primary hover:bg-primary-dark text-white text-sm font-bold py-2 px-4 rounded-lg transition-colors shadow-lg shadow-primary/25">
+                        </Link>
+                        <Link to="/login" className="bg-primary hover:bg-primary-dark text-white text-sm font-bold py-2 px-4 rounded-lg transition-colors shadow-lg shadow-primary/25">
                             Get Started
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </header>
@@ -61,12 +63,12 @@ export default function LandingPage() {
                                     advanced AI analysis.
                                 </p>
                                 <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                                    <button className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white text-base font-bold h-12 px-8 rounded-lg transition-all shadow-xl shadow-primary/30 flex items-center justify-center gap-2">
+                                    <Link to="/login" className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white text-base font-bold h-12 px-8 rounded-lg transition-all shadow-xl shadow-primary/30 flex items-center justify-center gap-2">
                                         <span>Get Started for Free</span>
                                         <span className="material-symbols-outlined text-sm">
                                             arrow_forward
                                         </span>
-                                    </button>
+                                    </Link>
                                     <button className="w-full sm:w-auto bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark text-slate-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 text-base font-medium h-12 px-8 rounded-lg transition-colors flex items-center justify-center gap-2">
                                         <span className="material-symbols-outlined text-primary">
                                             play_circle
@@ -470,9 +472,9 @@ export default function LandingPage() {
                                         <span>Manual Job Tracking</span>
                                     </li>
                                 </ul>
-                                <button className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors border border-slate-700">
+                                <Link to="/login" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors border border-slate-700 flex items-center justify-center">
                                     Start for Free
-                                </button>
+                                </Link>
                             </div>
                             <div className="relative rounded-2xl border border-primary bg-surface-dark p-8 flex flex-col shadow-2xl shadow-primary/10">
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-accent-purple text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
@@ -514,9 +516,9 @@ export default function LandingPage() {
                                         <span>Auto-fill Applications Chrome Extension</span>
                                     </li>
                                 </ul>
-                                <button className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-primary/25">
+                                <Link to="/login" className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-primary/25 flex items-center justify-center">
                                     Get Pro Access
-                                </button>
+                                </Link>
                             </div>
                         </div>
                     </div>
