@@ -556,12 +556,12 @@ export default function LandingPage() {
                             <h5 className="text-white font-semibold mb-4 text-sm">Product</h5>
                             <ul className="space-y-3 text-sm text-slate-400">
                                 <li>
-                                    <a className="hover:text-primary transition-colors" href="#">
+                                    <a className="hover:text-primary transition-colors" href="#features">
                                         Features
                                     </a>
                                 </li>
                                 <li>
-                                    <a className="hover:text-primary transition-colors" href="#">
+                                    <a className="hover:text-primary transition-colors" href="#pricing">
                                         Pricing
                                     </a>
                                 </li>
