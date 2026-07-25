@@ -63,6 +63,8 @@ npm run test:e2e     # playwright (spins up its own dev server)
 ```
 `package.json` has `"type": "module"` — required for the Vitest ESM toolchain. Vitest defaults to the `node` environment; add `// @vitest-environment jsdom` to the top of a test file for component tests (a jsdom transitive-dep bug breaks it if set globally — see `vitest.config.mts` comment).
 
+**Running Playwright (`test:e2e`):** this project directory lives inside OneDrive sync, which locks files in `test-results/` between runs and can make Playwright's own cleanup fail with `EPERM: operation not permitted, rmdir`. If a run fails with that error before any test even starts, `rm -rf test-results playwright-report` and rerun — it's a OneDrive artifact, not a real failure. `playwright.config.ts` loads `.env.local` via `process.loadEnvFile()` so e2e tests can talk to Supabase directly (e.g. creating a throwaway test user) — Playwright's Chromium binary itself needs `npx playwright install chromium` once per machine, and that install (like anything hitting the network) must run via the Bash tool, not PowerShell, which has no network access in this environment.
+
 ## Code Conventions
 - Functional components, default exports for pages/layouts.
 - Tailwind utility classes directly in JSX; no CSS modules.
@@ -93,9 +95,12 @@ Phase work happens on its own branch (`phase-N`), **never committed directly to 
 5. `git checkout -b phase-<N> && git push -u origin phase-<N>`.
 6. Verify: `git branch -a` should show exactly one local branch (`phase-<N>`, checked out) and no leftover `phase-<N-1>` refs.
 
+**Testing gate — non-negotiable before any merge to `main`:** `lint` + `tsc --noEmit` + `test` + `build` passing is necessary but not sufficient by itself for anything that touches user-facing behavior (a new feature, a UI flow, an integration). For those, also write and run a real Playwright e2e test that exercises the actual flow in a real browser against the live dev server and real backends (Supabase, Gemini) — not just a unit test of the underlying function. `lib/gemini/tailorResume.ts` passing its Zod schema doesn't mean the "Tailor for a job" button on the page actually works; only clicking it does. Pure logic/utility changes (a converter, a bug fix in a helper) can rely on unit tests alone — use judgment, but default to e2e for anything a user would click through. e2e tests that create data should create their own throwaway fixtures (e.g. a test user via the Supabase admin API) and delete them in `afterAll` — never assume a clean slate, never leave test data behind.
+
 **Finishing a phase** — when a phase's checklist in `PROGRESS.md` is fully checked off, prepare it for review, again without being asked:
-1. Commit and push the branch.
-2. Draft a PR description covering: Summary, bugs found and fixed (if any — call these out explicitly, don't bury them), what's deliberately out of scope, and what testing was actually performed vs. still outstanding.
-3. `gh` CLI isn't available in this environment — surface the PR title + body as copy-pasteable text, plus the `github.com/<owner>/<repo>/pull/new/<branch>` compare URL, rather than trying to run `gh pr create`.
+1. Run the testing gate above.
+2. Commit and push the branch.
+3. Draft a PR description covering: Summary, bugs found and fixed (if any — call these out explicitly, don't bury them), what's deliberately out of scope, and what testing was actually performed vs. still outstanding.
+4. `gh` CLI isn't available in this environment — surface the PR title + body as copy-pasteable text, plus the `github.com/<owner>/<repo>/pull/new/<branch>` compare URL, rather than trying to run `gh pr create`.
 
 **`main` branch protection:** the user wants `main` un-editable except via merged PRs. This has to be configured as a GitHub ruleset (Settings → Rules → Rulesets) — there is no git-level or local setting that enforces it, and this environment has no `gh` CLI or API token to set it up automatically, so it's a manual step for the user. If a repo ruleset for `main` isn't confirmed active, say so instead of assuming it's in place — this is not a substitute for actually checking.
