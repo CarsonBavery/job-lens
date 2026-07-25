@@ -28,6 +28,7 @@ export interface Database {
           id: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
+        Relationships: [];
       };
       resumes: {
         Row: {
@@ -47,6 +48,7 @@ export interface Database {
           title: string;
         };
         Update: Partial<Database["public"]["Tables"]["resumes"]["Row"]>;
+        Relationships: [];
       };
       cover_letters: {
         Row: {
@@ -65,6 +67,7 @@ export interface Database {
           title: string;
         };
         Update: Partial<Database["public"]["Tables"]["cover_letters"]["Row"]>;
+        Relationships: [];
       };
       job_sources: {
         Row: {
@@ -76,6 +79,7 @@ export interface Database {
           name: JobSourceName;
         };
         Update: Partial<Database["public"]["Tables"]["job_sources"]["Row"]>;
+        Relationships: [];
       };
       job_postings: {
         Row: {
@@ -105,6 +109,7 @@ export interface Database {
           url: string;
         };
         Update: Partial<Database["public"]["Tables"]["job_postings"]["Row"]>;
+        Relationships: [];
       };
       applications: {
         Row: {
@@ -123,6 +128,7 @@ export interface Database {
           user_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["applications"]["Row"]>;
+        Relationships: [];
       };
       subscriptions: {
         Row: {
@@ -142,7 +148,20 @@ export interface Database {
           status: string;
         };
         Update: Partial<Database["public"]["Tables"]["subscriptions"]["Row"]>;
+        Relationships: [];
       };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }
