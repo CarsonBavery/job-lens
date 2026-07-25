@@ -3,7 +3,7 @@
 ## Product
 JobLens is an AI-assisted job search platform: resume & cover letter maintenance (Gemini-tailored per posting), application tracking, and a deduplicated multi-source job board aggregator. Free tier: 3 base resumes + 1 cover letter. Paid tier: higher storage/usage limits, later licensed job-source coverage.
 
-**Status:** Phase 1 merged to `main` 2026-07-25. Phase 2 (AI features) built and **live-verified** on branch `phase-2`, not yet merged: Gemini-powered resume tailoring and cover letter generation both confirmed working end-to-end against the real API (grounded, no fabrication observed). Job-to-resume match scoring was pushed to Phase 3 (needs real job postings to score against). `lint`/`tsc`/`test`/`build` all pass. Nobody has clicked through either AI feature in the browser yet — only the underlying Gemini calls have been verified directly, not the UI wiring. See `PROGRESS.md` for the phased backlog and what's left.
+**Status:** Phase 1 merged to `main` 2026-07-25. Phase 2 (AI features) built, e2e-tested, and polished on branch `phase-2`, not yet merged: Gemini-powered resume tailoring and cover letter generation both confirmed working end-to-end in a real browser against live Supabase + Gemini, including a fix for tailored/AI-generated documents being unreachable after creation (see `listTailoredDocuments`, below). Job-to-resume match scoring was pushed to Phase 3 (needs real job postings to score against). `lint`/`tsc`/`test`/`test:e2e`/`build` all pass. See `PROGRESS.md` for the full roadmap through deployment and what's left.
 
 ## Tech Stack
 - **Framework:** Next.js 15 (App Router, Turbopack), React 19, TypeScript (strict)
@@ -31,7 +31,7 @@ Full rationale for these choices lives in persistent memory (`joblens-stack-deci
 - `lib/supabase/server.ts` — server client (Server Components/Route Handlers) + `createServiceRoleClient()` for RLS-bypassing jobs (ingestion, webhooks)
 - `lib/supabase/middleware.ts` — session-refresh helper used by `middleware.ts`
 - `lib/auth/actions.ts` — sign in/up/out Server Actions (Zod-validated)
-- `lib/documents/db.ts` — shared CRUD + tier-limit helpers used by both resumes and cover letters (the two tables only differ in a couple of type-specific columns)
+- `lib/documents/db.ts` — shared CRUD + tier-limit helpers used by both resumes and cover letters (the two tables only differ in a couple of type-specific columns). `listTailoredDocuments` finds the non-base children of a given base document (via `base_resume_id`/`base_cover_letter_id`) — any new way of creating a non-base document must set that parent link, or the result is permanently unreachable (see Code Conventions).
 - `lib/resumes/actions.ts`, `lib/cover-letters/actions.ts` — thin per-entity Server Action wrappers around `lib/documents/db.ts`
 - `lib/tiptap/toDocx.ts` — converts Tiptap/ProseMirror JSON to a `.docx` buffer
 - `lib/tiptap/toPlainText.ts` — Tiptap JSON → plain text, used to feed a document's current content to Gemini as prompt context
@@ -44,6 +44,7 @@ Full rationale for these choices lives in persistent memory (`joblens-stack-deci
 - `lib/ingestion/normalize.ts` — cross-source job dedup key builder (ATS connectors land here in Phase 3)
 - `components/auth/GoogleSignInButton.tsx` — client-side OAuth trigger
 - `components/editor/DocumentEditor.tsx`, `EditorToolbar.tsx` — the Tiptap editor UI, autosaves 1s after the user stops typing
+- `components/editor/TailoredVersionsList.tsx` — renders on a base document's editor page, linking to every non-base document derived from it (see `listTailoredDocuments`)
 - `types/database.ts` — hand-written Supabase `Database` type; regenerate with `supabase gen types` once a live project exists. **Must include `Views`/`Functions`/`Enums`/`CompositeTypes` and per-table `Relationships: []`** even though this schema uses none of them — omitting any of those silently collapses query result types to `never` instead of erroring (cost real debugging time once already).
 - `supabase/migrations/0001_init.sql` — full schema, apply via Supabase CLI or SQL editor
 - `public/` — static assets (currently empty — default create-next-app svgs were removed as dead weight)
@@ -74,7 +75,8 @@ npm run test:e2e     # playwright (spins up its own dev server)
 - Server-side Supabase/Stripe/Gemini calls belong in `lib/`, not inline in route handlers or components.
 - Server-only clients (Gemini, and anything similar added later) must be **lazily constructed** behind a function, not built at module top-level — `lib/gemini/client.ts`'s `getGeminiClient()` is the pattern. Top-level construction gets evaluated at build time for every page that transitively imports the module (most of them, via Server Actions), which both warns noisily when the API key is empty and does needless work for routes that never call it.
 - AI-generated resume/cover-letter content flows through the `Block[]` shape in `lib/gemini/schemas.ts`, not raw Tiptap JSON — see `lib/tiptap/fromBlocks.ts` and `toPlainText.ts`. Reuse those converters for any new AI-generation feature rather than inventing another intermediate format.
-- Tailored/AI-generated documents are `is_base: false` rows (via `insertDocument`, not `createBaseDocument`) and never count against tier limits — only the true "base" documents a user manually creates do.
+- Tailored/AI-generated documents are `is_base: false` rows (via `insertDocument`, not `createBaseDocument`) and never count against tier limits — only the true "base" documents a user manually creates do. They **must** also set `base_resume_id`/`base_cover_letter_id` (via `insertDocument`'s `extra` param) pointing at a real base document — that's the only thing that makes them discoverable again (`listTailoredDocuments` / `TailoredVersionsList`). A non-base document with no parent link is permanently unreachable in the current UI; this was a real bug found and fixed in Phase 2, not a hypothetical.
+- **No rate limiting exists yet** on Gemini-calling actions (`tailorResume`, `generateCoverLetter`) — a free-tier user can currently generate unlimited AI content at real API cost with no monetization gate. This is flagged as a pre-launch blocker in `PROGRESS.md`, not fixed yet; don't assume it's handled.
 - Never commit real API keys — use `.env.local` (gitignored) and document required vars in `.env.example`.
 - Free-tier limits (3 resumes / 1 cover letter) live in `lib/documents/db.ts`'s `BASE_LIMITS` — change them there, not in individual pages.
 

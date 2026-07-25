@@ -116,6 +116,26 @@ export async function listBaseDocuments(
   return (data ?? []) as DocumentRecord[];
 }
 
+// Tailored/AI-generated variants (is_base: false) don't show up in
+// listBaseDocuments, so without this they become unreachable the moment a
+// user navigates away from the redirect that created them -- there is no
+// other list, link, or search that surfaces them. Called from a base
+// document's editor page with its own id as parentId.
+export async function listTailoredDocuments(
+  supabase: SupabaseClient<Database>,
+  table: DocTable,
+  parentColumn: "base_resume_id" | "base_cover_letter_id",
+  parentId: string,
+): Promise<DocumentRecord[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from(table) as any)
+    .select("id, user_id, title, content, is_base, created_at, updated_at")
+    .eq(parentColumn, parentId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as DocumentRecord[];
+}
+
 export async function updateDocumentContent(
   supabase: SupabaseClient<Database>,
   table: DocTable,

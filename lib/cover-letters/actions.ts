@@ -11,6 +11,7 @@ import {
   deleteDocument,
   getDocument,
   insertDocument,
+  listBaseDocuments,
   updateDocumentContent,
   type SubscriptionTier,
 } from "@/lib/documents/db";
@@ -71,8 +72,9 @@ export interface GenerateCoverLetterState {
 
 // Becomes the user's base cover letter (counts against the free-tier limit)
 // if they don't have one yet; otherwise it's a tailored, non-counting extra
-// -- same "first one is the real slot, the rest are free" pattern as resume
-// tailoring, just without a specific parent cover letter to tailor from.
+// linked to their existing base cover letter via base_cover_letter_id so it
+// shows up in that base letter's "Tailored versions" list -- without that
+// link a non-base cover letter would have no page that ever surfaces it.
 export async function generateCoverLetter(
   _prevState: GenerateCoverLetterState,
   formData: FormData,
@@ -106,12 +108,23 @@ export async function generateCoverLetter(
   const count = await countBaseDocuments(supabase, "cover_letters", user.id);
   const isBase = count < baseDocumentLimit("cover_letters", tier);
 
-  const id = await insertDocument(supabase, "cover_letters", {
-    user_id: user.id,
-    title: isBase ? "Cover Letter" : "Cover Letter (tailored)",
-    is_base: isBase,
-    content: blocksToTiptap(blocks),
-  });
+  let baseCoverLetterId: string | null = null;
+  if (!isBase) {
+    const [existingBase] = await listBaseDocuments(supabase, "cover_letters", user.id);
+    baseCoverLetterId = existingBase?.id ?? null;
+  }
+
+  const id = await insertDocument(
+    supabase,
+    "cover_letters",
+    {
+      user_id: user.id,
+      title: isBase ? "Cover Letter" : "Cover Letter (tailored)",
+      is_base: isBase,
+      content: blocksToTiptap(blocks),
+    },
+    baseCoverLetterId ? { base_cover_letter_id: baseCoverLetterId } : {},
+  );
 
   redirect(`/dashboard/cover-letters/${id}`);
 }

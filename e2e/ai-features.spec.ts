@@ -65,8 +65,20 @@ test("resume tailoring and cover letter generation work end-to-end", async ({ pa
     { timeout: 30000 },
   );
   await expect(page.getByTestId("document-title")).toHaveValue(/tailored/i);
+  const tailoredResumeUrl = page.url();
 
-  // --- Generate a cover letter from the base resume ---
+  // --- The tailored copy must be discoverable again from the base resume,
+  //     not just reachable via the redirect that created it ---
+  await page.goto(baseResumeUrl);
+  await expect(page.getByText("Tailored versions")).toBeVisible();
+  const tailoredResumeLink = page.getByRole("link", { name: /tailored/i });
+  await expect(tailoredResumeLink).toHaveAttribute(
+    "href",
+    new URL(tailoredResumeUrl).pathname,
+  );
+
+  // --- Generate a cover letter from the base resume (first one: becomes
+  //     the base cover letter, since the test user has none yet) ---
   await page.goto("/dashboard/cover-letters");
   await page.getByText("Generate with AI").click();
   await page.getByLabel("Based on resume").selectOption({ label: "E2E Test Resume" });
@@ -77,4 +89,27 @@ test("resume tailoring and cover letter generation work end-to-end", async ({ pa
 
   await page.waitForURL(/\/dashboard\/cover-letters\/[0-9a-f-]{36}$/, { timeout: 30000 });
   await expect(page.getByTestId("document-title")).toHaveValue(/Cover Letter/i);
+  const baseCoverLetterUrl = page.url();
+
+  // --- Generate a second cover letter for a different job: the user
+  //     already has a base cover letter, so this one must be a tailored,
+  //     non-counting variant linked back to it ---
+  await page.goto("/dashboard/cover-letters");
+  await page.getByText("Generate with AI").click();
+  await page.getByLabel("Based on resume").selectOption({ label: "E2E Test Resume" });
+  await page
+    .getByPlaceholder("Paste the job description here…")
+    .fill("Staff Backend Engineer at Globex, leading platform reliability.");
+  await page.getByRole("button", { name: "Generate cover letter" }).click();
+
+  await page.waitForURL(
+    (url) =>
+      url.pathname !== new URL(baseCoverLetterUrl).pathname &&
+      /\/dashboard\/cover-letters\/[0-9a-f-]{36}$/.test(url.pathname),
+    { timeout: 30000 },
+  );
+
+  // --- That second one must be discoverable from the base cover letter ---
+  await page.goto(baseCoverLetterUrl);
+  await expect(page.getByText("Tailored versions")).toBeVisible();
 });
