@@ -2,15 +2,22 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import type { JSONContent } from "@tiptap/react";
 import { createClient } from "@/lib/supabase/server";
 import {
   baseDocumentLimit,
   countBaseDocuments,
   createBaseDocument,
   deleteDocument,
+  getDocument,
+  insertDocument,
+  listBaseDocuments,
   updateDocumentContent,
   type SubscriptionTier,
 } from "@/lib/documents/db";
+import { generateCoverLetterContent } from "@/lib/gemini/generateCoverLetter";
+import { tiptapToPlainText } from "@/lib/tiptap/toPlainText";
+import { blocksToTiptap } from "@/lib/tiptap/fromBlocks";
 
 async function requireUserAndTier() {
   const supabase = await createClient();
@@ -57,4 +64,67 @@ export async function deleteCoverLetter(formData: FormData) {
   await deleteDocument(supabase, "cover_letters", id);
   revalidatePath("/dashboard/cover-letters");
   redirect("/dashboard/cover-letters");
+}
+
+export interface GenerateCoverLetterState {
+  error: string | null;
+}
+
+// Becomes the user's base cover letter (counts against the free-tier limit)
+// if they don't have one yet; otherwise it's a tailored, non-counting extra
+// linked to their existing base cover letter via base_cover_letter_id so it
+// shows up in that base letter's "Tailored versions" list -- without that
+// link a non-base cover letter would have no page that ever surfaces it.
+export async function generateCoverLetter(
+  _prevState: GenerateCoverLetterState,
+  formData: FormData,
+): Promise<GenerateCoverLetterState> {
+  const { supabase, user, tier } = await requireUserAndTier();
+
+  const resumeId = formData.get("resumeId") as string;
+  const jobDescription = (formData.get("jobDescription") as string)?.trim();
+  if (!resumeId) {
+    return { error: "Choose a resume to base the cover letter on." };
+  }
+  if (!jobDescription) {
+    return { error: "Paste the job description first." };
+  }
+
+  const resume = await getDocument(supabase, "resumes", resumeId);
+  if (!resume) {
+    return { error: "Resume not found." };
+  }
+
+  let blocks;
+  try {
+    blocks = await generateCoverLetterContent({
+      resumeText: tiptapToPlainText(resume.content as JSONContent),
+      jobDescription,
+    });
+  } catch {
+    return { error: "The AI generation request failed. Try again in a moment." };
+  }
+
+  const count = await countBaseDocuments(supabase, "cover_letters", user.id);
+  const isBase = count < baseDocumentLimit("cover_letters", tier);
+
+  let baseCoverLetterId: string | null = null;
+  if (!isBase) {
+    const [existingBase] = await listBaseDocuments(supabase, "cover_letters", user.id);
+    baseCoverLetterId = existingBase?.id ?? null;
+  }
+
+  const id = await insertDocument(
+    supabase,
+    "cover_letters",
+    {
+      user_id: user.id,
+      title: isBase ? "Cover Letter" : "Cover Letter (tailored)",
+      is_base: isBase,
+      content: blocksToTiptap(blocks),
+    },
+    baseCoverLetterId ? { base_cover_letter_id: baseCoverLetterId } : {},
+  );
+
+  redirect(`/dashboard/cover-letters/${id}`);
 }

@@ -85,6 +85,7 @@ export function DocumentEditor({
       </div>
 
       <input
+        data-testid="document-title"
         value={title}
         onChange={(e) => {
           setTitle(e.target.value);
