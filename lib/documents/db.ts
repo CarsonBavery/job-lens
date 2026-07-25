@@ -42,23 +42,44 @@ export async function countBaseDocuments(
   return count ?? 0;
 }
 
+// Insert/Update shapes differ slightly between resumes and cover_letters
+// (job_title, base_resume_id vs base_cover_letter_id), so this shared helper
+// only touches the columns the two tables have in common -- the union of
+// both tables' Insert types is what forces the cast below. `extra` carries
+// table-specific columns (e.g. `base_resume_id`) the caller already knows
+// the right key for.
+export async function insertDocument(
+  supabase: SupabaseClient<Database>,
+  table: DocTable,
+  fields: {
+    user_id: string;
+    title: string;
+    content: Record<string, unknown>;
+    is_base: boolean;
+  },
+  extra: Record<string, unknown> = {},
+): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from(table) as any)
+    .insert({ ...fields, ...extra })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return (data as { id: string }).id;
+}
+
 export async function createBaseDocument(
   supabase: SupabaseClient<Database>,
   table: DocTable,
   userId: string,
   title: string,
 ): Promise<string> {
-  // Insert/Update shapes differ slightly between resumes and cover_letters
-  // (job_title, base_resume_id vs base_cover_letter_id), so this shared
-  // helper only touches the columns the two tables have in common -- the
-  // union of both tables' Insert types is what forces the cast below.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from(table) as any)
-    .insert({ user_id: userId, title, is_base: true, content: EMPTY_DOC })
-    .select("id")
-    .single();
-  if (error) throw error;
-  return (data as { id: string }).id;
+  return insertDocument(supabase, table, {
+    user_id: userId,
+    title,
+    is_base: true,
+    content: EMPTY_DOC,
+  });
 }
 
 export async function getDocument(

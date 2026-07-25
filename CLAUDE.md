@@ -3,7 +3,7 @@
 ## Product
 JobLens is an AI-assisted job search platform: resume & cover letter maintenance (Gemini-tailored per posting), application tracking, and a deduplicated multi-source job board aggregator. Free tier: 3 base resumes + 1 cover letter. Paid tier: higher storage/usage limits, later licensed job-source coverage.
 
-**Status:** Phase 1 merged to `main` 2026-07-25 (auth, dashboard, Word-style resume/cover-letter editor, `.docx` export — all live-verified, including a real signup FK bug found and fixed post-merge). Phase 2 (AI features) starting on branch `phase-2`. `.env.local` has real Supabase keys; Gemini/Stripe keys still empty (Gemini needed now for Phase 2, Stripe still not until Phase 4). See `PROGRESS.md` for the phased backlog and what's left.
+**Status:** Phase 1 merged to `main` 2026-07-25. Phase 2 (AI features) built on branch `phase-2`, not yet merged: Gemini-powered resume tailoring and cover letter generation are done; job-to-resume match scoring was pushed to Phase 3 (it needs real job postings to score against, which don't exist until then). `lint`/`tsc`/`test`/`build` all pass, but **none of the Gemini calls have actually been exercised** — `GEMINI_API_KEY` in `.env.local` is still empty. See `PROGRESS.md` for the phased backlog and what's left.
 
 ## Tech Stack
 - **Framework:** Next.js 15 (App Router, Turbopack), React 19, TypeScript (strict)
@@ -34,7 +34,12 @@ Full rationale for these choices lives in persistent memory (`joblens-stack-deci
 - `lib/documents/db.ts` — shared CRUD + tier-limit helpers used by both resumes and cover letters (the two tables only differ in a couple of type-specific columns)
 - `lib/resumes/actions.ts`, `lib/cover-letters/actions.ts` — thin per-entity Server Action wrappers around `lib/documents/db.ts`
 - `lib/tiptap/toDocx.ts` — converts Tiptap/ProseMirror JSON to a `.docx` buffer
-- `lib/gemini/client.ts` — Gemini client + model name constants
+- `lib/tiptap/toPlainText.ts` — Tiptap JSON → plain text, used to feed a document's current content to Gemini as prompt context
+- `lib/tiptap/fromBlocks.ts` — converts Gemini's structured block output back into Tiptap JSON (groups consecutive `bullet` blocks into one `bulletList`)
+- `lib/gemini/client.ts` — `getGeminiClient()` (lazy singleton — see Code Conventions) + model name constants
+- `lib/gemini/schemas.ts` — the `Block`/`blocksJsonSchema` shape all Gemini generation calls return: flat `{ type, text }[]`, deliberately not raw Tiptap JSON (too easy for a model to get the nested node shape subtly wrong)
+- `lib/gemini/generateBlocks.ts` — shared call-Gemini-with-schema-and-validate-the-response helper
+- `lib/gemini/tailorResume.ts`, `lib/gemini/generateCoverLetter.ts` — the two prompts, both explicitly instructed not to fabricate experience beyond what's in the source resume
 - `lib/stripe/client.ts` — Stripe client
 - `lib/ingestion/normalize.ts` — cross-source job dedup key builder (ATS connectors land here in Phase 3)
 - `components/auth/GoogleSignInButton.tsx` — client-side OAuth trigger
@@ -65,6 +70,9 @@ npm run test:e2e     # playwright (spins up its own dev server)
 - Mutations go through Server Actions (`lib/*/actions.ts`, `"use server"`), not client-side `fetch` to API routes. API routes (`app/api/`) are reserved for things that need to *return a file/response* a Server Action can't (e.g. `.docx` downloads).
 - Use the `@/*` path alias instead of relative `../../` imports.
 - Server-side Supabase/Stripe/Gemini calls belong in `lib/`, not inline in route handlers or components.
+- Server-only clients (Gemini, and anything similar added later) must be **lazily constructed** behind a function, not built at module top-level — `lib/gemini/client.ts`'s `getGeminiClient()` is the pattern. Top-level construction gets evaluated at build time for every page that transitively imports the module (most of them, via Server Actions), which both warns noisily when the API key is empty and does needless work for routes that never call it.
+- AI-generated resume/cover-letter content flows through the `Block[]` shape in `lib/gemini/schemas.ts`, not raw Tiptap JSON — see `lib/tiptap/fromBlocks.ts` and `toPlainText.ts`. Reuse those converters for any new AI-generation feature rather than inventing another intermediate format.
+- Tailored/AI-generated documents are `is_base: false` rows (via `insertDocument`, not `createBaseDocument`) and never count against tier limits — only the true "base" documents a user manually creates do.
 - Never commit real API keys — use `.env.local` (gitignored) and document required vars in `.env.example`.
 - Free-tier limits (3 resumes / 1 cover letter) live in `lib/documents/db.ts`'s `BASE_LIMITS` — change them there, not in individual pages.
 

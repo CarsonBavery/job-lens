@@ -7,6 +7,7 @@ import {
   type SubscriptionTier,
 } from "@/lib/documents/db";
 import { createCoverLetter, deleteCoverLetter } from "@/lib/cover-letters/actions";
+import { GenerateCoverLetterForm } from "@/components/editor/GenerateCoverLetterForm";
 
 export default async function CoverLettersPage({
   searchParams,
@@ -27,9 +28,10 @@ export default async function CoverLettersPage({
     .single();
   const tier = (profile?.subscription_tier ?? "free") as SubscriptionTier;
 
-  const [coverLetters, count] = await Promise.all([
+  const [coverLetters, count, resumes] = await Promise.all([
     listBaseDocuments(supabase, "cover_letters", user.id),
     countBaseDocuments(supabase, "cover_letters", user.id),
+    listBaseDocuments(supabase, "resumes", user.id),
   ]);
   const limit = baseDocumentLimit("cover_letters", tier);
   const atLimit = count >= limit;
@@ -95,6 +97,8 @@ export default async function CoverLettersPage({
           <p className="py-6 text-sm text-gray-500">No cover letters yet.</p>
         )}
       </ul>
+
+      <GenerateCoverLetterForm resumes={resumes.map((r) => ({ id: r.id, title: r.title }))} />
     </div>
   );
 }

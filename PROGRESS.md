@@ -1,7 +1,9 @@
 # PROGRESS.md — JobLens
 
 ## Current State
-Phase 0 and Phase 1 are merged into `main` (PR #5) and verified against a live Supabase project. `npm run lint`, `npx tsc --noEmit`, `npm run test`, and `npm run build` all pass clean. Work has moved to branch `phase-2` for AI features. See `CLAUDE.md` for the architecture, including the "PR Workflow" section governing branch lifecycle.
+Phase 0 and Phase 1 are merged into `main` (PR #5). Phase 2 (AI features) is built on branch `phase-2`, not yet merged: resume tailoring and cover letter generation via Gemini are both done; match scoring was deliberately pushed into Phase 3 (see that section). `npm run lint`, `npx tsc --noEmit`, `npm run test` (9 passing), and `npm run build` all pass clean. See `CLAUDE.md` for the architecture, including the "PR Workflow" section governing branch lifecycle.
+
+**Nothing in Phase 2 has actually been run against real Gemini output** — `GEMINI_API_KEY` in `.env.local` is still empty (get one at https://aistudio.google.com/apikey). Everything below is type-checked and logically reviewed, not runtime-verified.
 
 **Outstanding from Phase 1, not blocking Phase 2 but not forgotten:** nobody has clicked through create → edit → autosave → export for a resume/cover letter in the browser (only signup/login and route-level checks are confirmed). Google OAuth isn't configured (deferred by choice). `main`-branch protection (blocking direct pushes, requiring PRs) has been requested by the user but is **not yet confirmed set up** — it requires a GitHub ruleset change neither `gh` CLI nor an API token is available here to make; needs manual verification.
 
@@ -18,18 +20,20 @@ Phase 0 and Phase 1 are merged into `main` (PR #5) and verified against a live S
 - [ ] **Deferred by design:** `.docx` *import* (upload an existing resume to start editing) — user chose create-in-editor-only for Phase 1; revisit if users want to start from an existing file
 - [x] Signup and login confirmed working in the browser
 - [x] Diagnosed and fixed a `23503` foreign-key error on document creation (missing `profiles` row for the user's account — see session log)
-- [ ] Click through create resume → edit → autosave → export in the browser (still not done by anyone — carry forward, not a Phase 2 blocker)
 
-**Phase 2 — AI features** (branch: `phase-2`)
-- [ ] Gemini-powered resume tailoring to a specific job posting
-- [ ] Gemini-powered cover letter generation
-- [ ] Job-to-resume match scoring (pgvector embeddings) — **note:** meaningful matching needs real job postings, which don't exist until Phase 3's ingestion is built; scope this carefully rather than building against fake data
+**Phase 2 — AI features** (branch: `phase-2`) — built, not yet runtime-tested (no Gemini key) or merged
+- [x] Gemini-powered resume tailoring to a pasted job description — creates a new non-base (`is_base: false`) copy linked via `base_resume_id`; doesn't touch the original, doesn't count against the resume limit
+- [x] Gemini-powered cover letter generation from a selected resume + pasted job description — fills the free base cover letter first, further generations are non-counting tailored copies
+- [ ] **Moved to Phase 3:** job-to-resume match scoring (pgvector embeddings) — needs real job postings to score against, which don't exist until Phase 3's ingestion is built
+- [ ] Get a `GEMINI_API_KEY` and actually run both flows end-to-end
+- [ ] Click through create resume → edit → autosave → export in the browser (carried over from Phase 1, still not done)
 
 **Phase 3 — Job board aggregation**
 - [ ] Greenhouse/Lever/Ashby/Workable ingestion (Vercel cron)
 - [ ] Normalization schema across sources
 - [ ] Dedup pipeline (company+title+location + embedding similarity)
 - [ ] Job search/browse UI
+- [ ] Job-to-resume match scoring (pgvector embeddings) — moved here from Phase 2, now that real postings will exist
 
 **Phase 4 — Billing**
 - [ ] Stripe checkout + customer portal
@@ -50,3 +54,4 @@ Phase 0 and Phase 1 are merged into `main` (PR #5) and verified against a live S
 - **2026-07-25** — User confirmed signup and login work in the browser. Committed all Phase 0 + Phase 1 work (34 files) to the pre-existing `phase-1` branch and pushed it to GitHub — nothing was committed straight to `main`. Drafted a PR description (summary, bugs found, explicitly-out-of-scope, testing performed/outstanding) since no `gh` CLI is available in this environment to open the PR directly; gave the user the compare URL and copy-pasteable title/body instead. Added a standing "PR Workflow" section to `CLAUDE.md` so this happens automatically at the end of every phase from now on, without being asked.
 - **2026-07-25** — User hit a `23503` foreign-key-violation error creating a cover letter. Diagnosed via the live DB (using the service role key, no `gh`/psql access needed): `public.profiles` was completely empty despite the user having a real, confirmed `auth.users` account — the `on_auth_user_created` trigger hadn't fired for that specific signup. Verified the trigger definition itself is correct by creating a throwaway test user via the Supabase Auth admin API: a profile row was created for it automatically, proving the trigger works for new signups (then deleted the test user; `ON DELETE CASCADE` cleaned up its profile too). Manually backfilled the missing `profiles` row for the real account via a direct `POST` to the PostgREST API with the service role key — no code or migration changes needed, this was a one-off data gap, most likely a timing fluke from right after the migration/trigger were first created. User should retry creating a resume/cover letter now.
 - **2026-07-25** — User merged and deleted `phase-1` on GitHub (PR #5). Did the branch handoff: `git checkout main && git pull` (fast-forwarded onto the merge commit), `git fetch --prune` (cleared the stale `origin/phase-1` ref), `git branch -d phase-1` (local delete, safe because it was fully merged), then created and pushed `phase-2`. Codified this whole sequence into `CLAUDE.md`'s "PR Workflow" section as a "starting a new phase" checklist to run automatically going forward, no longer just an "ending a phase" one. User also asked that `main` be made un-editable except via merged PRs — documented in `CLAUDE.md` that this needs a GitHub ruleset change (Settings → Rules → Rulesets) which has to be done manually in the browser; flagged as not-yet-confirmed-active rather than assumed done.
+- **2026-07-25** — Built Phase 2. Scoped down first: job description input is a paste-in text box (not tied to Phase 3 job postings), and job-to-resume match scoring was moved into Phase 3 outright, since scoring needs a real corpus of postings to be meaningful. Designed a flat `Block[]` shape (`lib/gemini/schemas.ts`) as the AI response format instead of raw Tiptap JSON — simpler for Gemini to generate reliably, converted to/from real editor content via new `lib/tiptap/toPlainText.ts` and `fromBlocks.ts` (both unit-tested). Wired resume tailoring (`lib/gemini/tailorResume.ts`) and cover letter generation (`lib/gemini/generateCoverLetter.ts`) through Gemini's `responseJsonSchema` structured output, Zod-validated on the way back. Extended `lib/documents/db.ts` with a general `insertDocument` so AI-generated documents can be created as non-base (tailored, non-counting) or as someone's first base document, reusing the existing tier-limit machinery rather than adding new rules. Added UI: a collapsible "Tailor for a job" panel on the resume editor, a "Generate with AI" panel on the cover letters list page. Hit a real build hang (production build stalled indefinitely after "Environments: .env.local") caused by orphaned Node processes from an earlier killed dev server holding a Windows file lock on `.next/trace` — not a code bug; killing the stray `node.exe` processes and clearing `.next` fixed it. Separately noticed (and fixed) that `lib/gemini/client.ts` was constructing the `GoogleGenAI` client at module top-level, which gets evaluated at build time for every page that transitively imports it via Server Actions — caused 8 "API key should be set" build warnings even on pages that never touch Gemini; switched to a lazy `getGeminiClient()` singleton. `lint`, `tsc --noEmit`, `test`, and `build` all pass clean. Not runtime-tested — no `GEMINI_API_KEY` yet.
