@@ -2,8 +2,15 @@ import { GoogleGenAI } from "@google/genai";
 
 // Model used for resume tailoring, cover letter generation, and job
 // match scoring. Centralized here so it's a one-line change to upgrade.
-export const GEMINI_TEXT_MODEL = "gemini-2.5-flash";
-export const GEMINI_EMBEDDING_MODEL = "text-embedding-004";
+//
+// Verified live against the project's actual API key on 2026-07-25 via
+// GET https://generativelanguage.googleapis.com/v1beta/models -- pinned
+// snapshot names (e.g. gemini-2.5-flash) can 404 for newer API keys even
+// while still listed as available, so these use Google's rolling aliases
+// instead. Re-verify against the ListModels endpoint if generation starts
+// failing with a 404.
+export const GEMINI_TEXT_MODEL = "gemini-flash-latest";
+export const GEMINI_EMBEDDING_MODEL = "gemini-embedding-001";
 
 let cachedClient: GoogleGenAI | null = null;
 

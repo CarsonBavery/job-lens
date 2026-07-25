@@ -3,7 +3,7 @@
 ## Product
 JobLens is an AI-assisted job search platform: resume & cover letter maintenance (Gemini-tailored per posting), application tracking, and a deduplicated multi-source job board aggregator. Free tier: 3 base resumes + 1 cover letter. Paid tier: higher storage/usage limits, later licensed job-source coverage.
 
-**Status:** Phase 1 merged to `main` 2026-07-25. Phase 2 (AI features) built on branch `phase-2`, not yet merged: Gemini-powered resume tailoring and cover letter generation are done; job-to-resume match scoring was pushed to Phase 3 (it needs real job postings to score against, which don't exist until then). `lint`/`tsc`/`test`/`build` all pass, but **none of the Gemini calls have actually been exercised** — `GEMINI_API_KEY` in `.env.local` is still empty. See `PROGRESS.md` for the phased backlog and what's left.
+**Status:** Phase 1 merged to `main` 2026-07-25. Phase 2 (AI features) built and **live-verified** on branch `phase-2`, not yet merged: Gemini-powered resume tailoring and cover letter generation both confirmed working end-to-end against the real API (grounded, no fabrication observed). Job-to-resume match scoring was pushed to Phase 3 (needs real job postings to score against). `lint`/`tsc`/`test`/`build` all pass. Nobody has clicked through either AI feature in the browser yet — only the underlying Gemini calls have been verified directly, not the UI wiring. See `PROGRESS.md` for the phased backlog and what's left.
 
 ## Tech Stack
 - **Framework:** Next.js 15 (App Router, Turbopack), React 19, TypeScript (strict)
@@ -36,7 +36,7 @@ Full rationale for these choices lives in persistent memory (`joblens-stack-deci
 - `lib/tiptap/toDocx.ts` — converts Tiptap/ProseMirror JSON to a `.docx` buffer
 - `lib/tiptap/toPlainText.ts` — Tiptap JSON → plain text, used to feed a document's current content to Gemini as prompt context
 - `lib/tiptap/fromBlocks.ts` — converts Gemini's structured block output back into Tiptap JSON (groups consecutive `bullet` blocks into one `bulletList`)
-- `lib/gemini/client.ts` — `getGeminiClient()` (lazy singleton — see Code Conventions) + model name constants
+- `lib/gemini/client.ts` — `getGeminiClient()` (lazy singleton — see Code Conventions) + model name constants. Uses Google's rolling aliases (`gemini-flash-latest`, `gemini-embedding-001`), not pinned snapshots — `gemini-2.5-flash` and `text-embedding-004` both 404'd for this project's API key even while still listed by `ListModels`, so pinned names aren't safe to assume stay valid.
 - `lib/gemini/schemas.ts` — the `Block`/`blocksJsonSchema` shape all Gemini generation calls return: flat `{ type, text }[]`, deliberately not raw Tiptap JSON (too easy for a model to get the nested node shape subtly wrong)
 - `lib/gemini/generateBlocks.ts` — shared call-Gemini-with-schema-and-validate-the-response helper
 - `lib/gemini/tailorResume.ts`, `lib/gemini/generateCoverLetter.ts` — the two prompts, both explicitly instructed not to fabricate experience beyond what's in the source resume
