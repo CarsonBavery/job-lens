@@ -98,6 +98,11 @@ create table public.job_sources (
 insert into public.job_sources (name) values
   ('greenhouse'), ('lever'), ('ashby'), ('workable');
 
+alter table public.job_sources enable row level security;
+
+create policy "job sources are publicly readable" on public.job_sources
+  for select using (true);
+
 create table public.job_postings (
   id uuid primary key default gen_random_uuid(),
   source_id uuid not null references public.job_sources (id),
