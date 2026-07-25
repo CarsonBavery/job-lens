@@ -1,15 +1,15 @@
 # PROGRESS.md — JobLens
 
 ## Current State
-Phase 0 and Phase 1 are both built **and now verified against a live Supabase project**: connection, schema, RLS, and the running dev server have all been smoke-tested successfully. `npm run lint`, `npx tsc --noEmit`, `npm run test`, and `npm run build` all pass clean. See `CLAUDE.md` for the architecture.
+Phase 0 and Phase 1 are merged into `main` (PR #5) and verified against a live Supabase project. `npm run lint`, `npx tsc --noEmit`, `npm run test`, and `npm run build` all pass clean. Work has moved to branch `phase-2` for AI features. See `CLAUDE.md` for the architecture, including the "PR Workflow" section governing branch lifecycle.
 
-**Still not covered by any testing done so far:** the actual signup/login/editor/autosave UI flow in a real browser (only HTTP-level route smoke tests have been run, no one has clicked through the app yet). Google OAuth isn't configured (deferred by choice — email/password works). Gemini and Stripe aren't wired up (not needed until Phase 2/4).
+**Outstanding from Phase 1, not blocking Phase 2 but not forgotten:** nobody has clicked through create → edit → autosave → export for a resume/cover letter in the browser (only signup/login and route-level checks are confirmed). Google OAuth isn't configured (deferred by choice). `main`-branch protection (blocking direct pushes, requiring PRs) has been requested by the user but is **not yet confirmed set up** — it requires a GitHub ruleset change neither `gh` CLI nor an API token is available here to make; needs manual verification.
 
 ## Immediate Backlog
 
-**Phase 0 — Project setup** ✅ done 2026-07-24, ✅ verified live 2026-07-25 (Supabase project connected, migration applied, RLS bug fixed — see session log)
+**Phase 0 — Project setup** ✅ done 2026-07-24, ✅ verified live 2026-07-25, ✅ merged to `main` 2026-07-25 (PR #5)
 
-**Phase 1 — Core MVP (auth + storage)** ✅ built 2026-07-25, ✅ route-level smoke test passing against live Supabase
+**Phase 1 — Core MVP (auth + storage)** ✅ built + merged to `main` 2026-07-25 (PR #5)
 - [x] Supabase Auth (email + Google OAuth) integration — email/password ready; Google provider deliberately not configured yet (deferred, not blocking)
 - [x] Resume CRUD with free-tier limit (3), edited as rich text (Tiptap), not raw file upload
 - [x] Cover letter CRUD with free-tier limit (1), same editor
@@ -17,14 +17,13 @@ Phase 0 and Phase 1 are both built **and now verified against a live Supabase pr
 - [x] `.docx` export for both document types
 - [ ] **Deferred by design:** `.docx` *import* (upload an existing resume to start editing) — user chose create-in-editor-only for Phase 1; revisit if users want to start from an existing file
 - [x] Signup and login confirmed working in the browser
-- [x] Diagnosed and fixed a `23503` foreign-key error on document creation (missing `profiles` row for the user's account — see session log); resume/cover-letter creation not yet re-confirmed working in the browser after the fix
-- [ ] Click through create resume → edit → autosave → export in the browser (not yet done by anyone)
-- [ ] Open and merge the `phase-1` PR into `main`
+- [x] Diagnosed and fixed a `23503` foreign-key error on document creation (missing `profiles` row for the user's account — see session log)
+- [ ] Click through create resume → edit → autosave → export in the browser (still not done by anyone — carry forward, not a Phase 2 blocker)
 
-**Phase 2 — AI features**
+**Phase 2 — AI features** (branch: `phase-2`)
 - [ ] Gemini-powered resume tailoring to a specific job posting
 - [ ] Gemini-powered cover letter generation
-- [ ] Job-to-resume match scoring (pgvector embeddings)
+- [ ] Job-to-resume match scoring (pgvector embeddings) — **note:** meaningful matching needs real job postings, which don't exist until Phase 3's ingestion is built; scope this carefully rather than building against fake data
 
 **Phase 3 — Job board aggregation**
 - [ ] Greenhouse/Lever/Ashby/Workable ingestion (Vercel cron)
@@ -50,3 +49,4 @@ Phase 0 and Phase 1 are both built **and now verified against a live Supabase pr
 - **2026-07-25** — User created the live Supabase project and ran the migration; wired up `.env.local` (gitignored, values never echoed back after the initial paste). Caught and fixed two real bugs during connection testing: (1) the migration never enabled RLS on `job_sources`, so its 4 seeded rows were invisible to the anon key despite existing in the database (diagnosed via a `pg_catalog` query comparing live DB state to expectations, then patched both the live DB and `supabase/migrations/0001_init.sql`); (2) `getDocument()` threw an unhandled Postgres `22P02 invalid input syntax for type uuid` error (→ HTTP 500) for any non-UUID document ID instead of a clean 404 — found by deliberately hitting the export route with a bogus ID, fixed by catching that error code and treating it as "not found." Started the dev server and confirmed `/`, `/login`, `/signup` return 200, `/dashboard` and its subroutes correctly 307-redirect unauthenticated requests to `/login`, and both malformed and valid-but-missing document IDs now 404 instead of 500. No one has clicked through the actual UI in a browser yet — only route-level HTTP checks so far. Dev server left running for the user to try next.
 - **2026-07-25** — User confirmed signup and login work in the browser. Committed all Phase 0 + Phase 1 work (34 files) to the pre-existing `phase-1` branch and pushed it to GitHub — nothing was committed straight to `main`. Drafted a PR description (summary, bugs found, explicitly-out-of-scope, testing performed/outstanding) since no `gh` CLI is available in this environment to open the PR directly; gave the user the compare URL and copy-pasteable title/body instead. Added a standing "PR Workflow" section to `CLAUDE.md` so this happens automatically at the end of every phase from now on, without being asked.
 - **2026-07-25** — User hit a `23503` foreign-key-violation error creating a cover letter. Diagnosed via the live DB (using the service role key, no `gh`/psql access needed): `public.profiles` was completely empty despite the user having a real, confirmed `auth.users` account — the `on_auth_user_created` trigger hadn't fired for that specific signup. Verified the trigger definition itself is correct by creating a throwaway test user via the Supabase Auth admin API: a profile row was created for it automatically, proving the trigger works for new signups (then deleted the test user; `ON DELETE CASCADE` cleaned up its profile too). Manually backfilled the missing `profiles` row for the real account via a direct `POST` to the PostgREST API with the service role key — no code or migration changes needed, this was a one-off data gap, most likely a timing fluke from right after the migration/trigger were first created. User should retry creating a resume/cover letter now.
+- **2026-07-25** — User merged and deleted `phase-1` on GitHub (PR #5). Did the branch handoff: `git checkout main && git pull` (fast-forwarded onto the merge commit), `git fetch --prune` (cleared the stale `origin/phase-1` ref), `git branch -d phase-1` (local delete, safe because it was fully merged), then created and pushed `phase-2`. Codified this whole sequence into `CLAUDE.md`'s "PR Workflow" section as a "starting a new phase" checklist to run automatically going forward, no longer just an "ending a phase" one. User also asked that `main` be made un-editable except via merged PRs — documented in `CLAUDE.md` that this needs a GitHub ruleset change (Settings → Rules → Rulesets) which has to be done manually in the browser; flagged as not-yet-confirmed-active rather than assumed done.

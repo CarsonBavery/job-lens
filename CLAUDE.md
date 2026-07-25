@@ -3,7 +3,7 @@
 ## Product
 JobLens is an AI-assisted job search platform: resume & cover letter maintenance (Gemini-tailored per posting), application tracking, and a deduplicated multi-source job board aggregator. Free tier: 3 base resumes + 1 cover letter. Paid tier: higher storage/usage limits, later licensed job-source coverage.
 
-**Status:** Phase 1 (core MVP) built and connected to a live Supabase project as of 2026-07-25 — auth, resume/cover-letter CRUD with a Word-style in-browser editor and tier limits, and .docx export are all in place and route-smoke-tested against real Postgres. `.env.local` exists (gitignored) with real Supabase keys; Gemini/Stripe keys still empty (not needed until Phase 2/4). No one has clicked through the UI in a browser yet — only HTTP-level checks so far. See `PROGRESS.md` for the phased backlog and what's left.
+**Status:** Phase 1 merged to `main` 2026-07-25 (auth, dashboard, Word-style resume/cover-letter editor, `.docx` export — all live-verified, including a real signup FK bug found and fixed post-merge). Phase 2 (AI features) starting on branch `phase-2`. `.env.local` has real Supabase keys; Gemini/Stripe keys still empty (Gemini needed now for Phase 2, Stripe still not until Phase 4). See `PROGRESS.md` for the phased backlog and what's left.
 
 ## Tech Stack
 - **Framework:** Next.js 15 (App Router, Turbopack), React 19, TypeScript (strict)
@@ -75,7 +75,19 @@ After completing any non-trivial task (new feature, refactor, bug fix, dependenc
 - Do not log routine/trivial edits (typos, formatting) — only meaningful work.
 
 ## PR Workflow
-Phase work happens on its own branch (`phase-N`), never committed directly to `main`. When a phase's checklist in `PROGRESS.md` is fully checked off, prepare it for review **without being asked**:
+Phase work happens on its own branch (`phase-N`), **never committed directly to `main`** — `main` is protected (see below) and shouldn't be pushed to directly anyway.
+
+**Starting a new phase** — do this automatically as the first step, without being asked:
+1. `git status` — confirm no uncommitted work is about to be lost.
+2. `git checkout main && git pull origin main` — get the just-merged previous phase.
+3. `git fetch --prune` — clear stale remote-tracking refs for branches deleted on GitHub after merge.
+4. `git branch -d phase-<N-1>` — delete the previous phase's local branch. Use `-d` (safe delete), not `-D` — if it refuses because the branch isn't fully merged into `main`, stop and surface that to the user rather than force-deleting; it means something didn't land.
+5. `git checkout -b phase-<N> && git push -u origin phase-<N>`.
+6. Verify: `git branch -a` should show exactly one local branch (`phase-<N>`, checked out) and no leftover `phase-<N-1>` refs.
+
+**Finishing a phase** — when a phase's checklist in `PROGRESS.md` is fully checked off, prepare it for review, again without being asked:
 1. Commit and push the branch.
 2. Draft a PR description covering: Summary, bugs found and fixed (if any — call these out explicitly, don't bury them), what's deliberately out of scope, and what testing was actually performed vs. still outstanding.
 3. `gh` CLI isn't available in this environment — surface the PR title + body as copy-pasteable text, plus the `github.com/<owner>/<repo>/pull/new/<branch>` compare URL, rather than trying to run `gh pr create`.
+
+**`main` branch protection:** the user wants `main` un-editable except via merged PRs. This has to be configured as a GitHub ruleset (Settings → Rules → Rulesets) — there is no git-level or local setting that enforces it, and this environment has no `gh` CLI or API token to set it up automatically, so it's a manual step for the user. If a repo ruleset for `main` isn't confirmed active, say so instead of assuming it's in place — this is not a substitute for actually checking.
