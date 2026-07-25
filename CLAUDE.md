@@ -73,3 +73,9 @@ After completing any non-trivial task (new feature, refactor, bug fix, dependenc
 - Move finished items from "Immediate Backlog" into "Recent Session Activity" with a one-line summary and date.
 - Keep "Current State" accurate — rewrite it if the project's shape changed materially.
 - Do not log routine/trivial edits (typos, formatting) — only meaningful work.
+
+## PR Workflow
+Phase work happens on its own branch (`phase-N`), never committed directly to `main`. When a phase's checklist in `PROGRESS.md` is fully checked off, prepare it for review **without being asked**:
+1. Commit and push the branch.
+2. Draft a PR description covering: Summary, bugs found and fixed (if any — call these out explicitly, don't bury them), what's deliberately out of scope, and what testing was actually performed vs. still outstanding.
+3. `gh` CLI isn't available in this environment — surface the PR title + body as copy-pasteable text, plus the `github.com/<owner>/<repo>/pull/new/<branch>` compare URL, rather than trying to run `gh pr create`.
