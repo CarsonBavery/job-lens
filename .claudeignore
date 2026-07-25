@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# Lockfiles (large, low signal for context)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Database dumps / data files
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql
+
+# Minified / generated assets
+*.min.js
+*.min.css
+public/**/*.svg
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Vercel
+.vercel/
+
+# Coverage
+coverage/
