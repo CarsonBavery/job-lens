@@ -4,7 +4,12 @@ interface AshbyJob {
   id: string;
   title: string;
   location: string | null;
-  isRemote: boolean;
+  // Despite Ashby's docs implying this is always a boolean, real postings
+  // have been observed with it missing/null (confirmed live: 10/104 Vanta
+  // postings, all EMEA roles without a clear remote/onsite designation) --
+  // passing that straight through violated job_postings.remote's NOT NULL
+  // constraint. Don't trust this field to always be present.
+  isRemote?: boolean | null;
   isListed: boolean;
   publishedAt: string | null;
   jobUrl: string;
@@ -34,7 +39,7 @@ export async function fetchAshbyJobs(
       company: companyName,
       title: job.title,
       location: job.location?.trim() || null,
-      remote: job.isRemote,
+      remote: job.isRemote ?? false,
       description: job.descriptionPlain?.trim() || null,
       url: job.jobUrl,
       postedAt: job.publishedAt,

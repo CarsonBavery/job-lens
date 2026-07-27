@@ -17,6 +17,19 @@ export interface IngestionSummary {
   errors: string[];
 }
 
+// Supabase's PostgrestError (and similar) are plain objects with a
+// `message` field, not `instanceof Error` -- `err instanceof Error ?
+// err.message : String(err)` collapses those to the useless literal
+// "[object Object]", which is exactly what hid a real bug (10/104 Vanta
+// postings failing) during a live Phase 3 timing run until this was fixed.
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object" && err !== null && "message" in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
+
 function embeddingTextFor(posting: NormalizedJobPosting): string {
   return [posting.title, posting.location, posting.description]
     .filter(Boolean)
@@ -24,7 +37,7 @@ function embeddingTextFor(posting: NormalizedJobPosting): string {
     .slice(0, 4000);
 }
 
-async function fetchForSource(config: CompanyConfig): Promise<NormalizedJobPosting[]> {
+async function fetchForSourceOnce(config: CompanyConfig): Promise<NormalizedJobPosting[]> {
   switch (config.source) {
     case "greenhouse":
       return fetchGreenhouseJobs(config.token, config.companyName);
@@ -34,6 +47,21 @@ async function fetchForSource(config: CompanyConfig): Promise<NormalizedJobPosti
       return fetchAshbyJobs(config.token, config.companyName);
     case "workable":
       return fetchWorkableJobs(config.token, config.companyName);
+  }
+}
+
+// Transient "fetch failed" (DNS/connection blips) has been observed live
+// against every one of these 4 ATS APIs during Phase 3 testing -- not a
+// hypothetical edge case. A production cron job hitting this shouldn't
+// silently skip an entire company until its next 6-hourly run over what's
+// usually a one-off network hiccup, so retry once after a short delay
+// before giving up.
+async function fetchForSource(config: CompanyConfig): Promise<NormalizedJobPosting[]> {
+  try {
+    return await fetchForSourceOnce(config);
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    return fetchForSourceOnce(config);
   }
 }
 
@@ -76,7 +104,7 @@ export async function runIngestion(
     try {
       postings = await fetchForSource(config);
     } catch (err) {
-      summary.errors.push(err instanceof Error ? err.message : String(err));
+      summary.errors.push(errorMessage(err));
       summaries.push(summary);
       continue;
     }
@@ -91,9 +119,7 @@ export async function runIngestion(
     try {
       embeddings = await embedJobPostingTexts(postings.map(embeddingTextFor));
     } catch (err) {
-      summary.errors.push(
-        `Embedding batch failed for ${config.companyName}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      summary.errors.push(`Embedding batch failed for ${config.companyName}: ${errorMessage(err)}`);
       summaries.push(summary);
       continue;
     }
@@ -144,9 +170,7 @@ export async function runIngestion(
 
         summary.upserted += 1;
       } catch (err) {
-        summary.errors.push(
-          `${posting.title} (${posting.externalId}): ${err instanceof Error ? err.message : String(err)}`,
-        );
+        summary.errors.push(`${posting.title} (${posting.externalId}): ${errorMessage(err)}`);
       }
     }
 
