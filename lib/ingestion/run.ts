@@ -14,7 +14,23 @@ export interface IngestionSummary {
   source: string;
   fetched: number;
   upserted: number;
+  closed: number;
   errors: string[];
+}
+
+// Pure diff, unit-tested in isolation (the DB round-trip it feeds into is
+// covered by the e2e ingestion test instead) -- a posting that was active
+// last run but didn't come back in this run's fetch is treated as closed
+// (filled/pulled by the company). Only ever called after a successful
+// fetch: a transient fetch failure must not be mistaken for "the company
+// has zero open roles now," or one bad network blip would wrongly close
+// every posting for that company.
+export function determineClosedExternalIds(
+  previouslyActiveIds: string[],
+  fetchedIds: string[],
+): string[] {
+  const fetchedSet = new Set(fetchedIds);
+  return previouslyActiveIds.filter((id) => !fetchedSet.has(id));
 }
 
 // Supabase's PostgrestError (and similar) are plain objects with a
@@ -90,6 +106,7 @@ export async function runIngestion(
       source: config.source,
       fetched: 0,
       upserted: 0,
+      closed: 0,
       errors: [],
     };
 
@@ -109,6 +126,38 @@ export async function runIngestion(
       continue;
     }
     summary.fetched = postings.length;
+
+    // Close out postings this company had last run but that didn't come
+    // back this time -- runs unconditionally (including when 0 postings
+    // were fetched, a legitimate "this company has no open roles right
+    // now" outcome, not an error) since the fetch above already succeeded
+    // by this point.
+    try {
+      const { data: previouslyActive, error: activeError } = await supabase
+        .from("job_postings")
+        .select("external_id")
+        .eq("source_id", sourceId)
+        .eq("company", config.companyName)
+        .eq("status", "active");
+      if (activeError) throw activeError;
+
+      const closedIds = determineClosedExternalIds(
+        (previouslyActive ?? []).map((row) => row.external_id),
+        postings.map((p) => p.externalId),
+      );
+      if (closedIds.length > 0) {
+        const { error: closeError } = await supabase
+          .from("job_postings")
+          .update({ status: "closed" })
+          .eq("source_id", sourceId)
+          .eq("company", config.companyName)
+          .in("external_id", closedIds);
+        if (closeError) throw closeError;
+        summary.closed = closedIds.length;
+      }
+    } catch (err) {
+      summary.errors.push(`Closing stale postings failed for ${config.companyName}: ${errorMessage(err)}`);
+    }
 
     if (postings.length === 0) {
       summaries.push(summary);
@@ -149,6 +198,11 @@ export async function runIngestion(
               posted_at: posting.postedAt,
               embedding,
               dedup_key: dedupKey,
+              // Explicit, not just the column default -- a posting closed
+              // in a previous run must flip back to active if it's fetched
+              // again (a company reopening a role, or a transient absence
+              // that self-corrected on the next run).
+              status: "active",
             },
             { onConflict: "source_id,external_id" },
           )
