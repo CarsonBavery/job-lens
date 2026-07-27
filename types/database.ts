@@ -135,6 +135,65 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["applications"]["Row"]>;
         Relationships: [];
       };
+      projects: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          description: string | null;
+          tech_stack: string | null;
+          github_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["projects"]["Row"]> & {
+          user_id: string;
+          title: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["projects"]["Row"]>;
+        Relationships: [];
+      };
+      education: {
+        Row: {
+          id: string;
+          user_id: string;
+          institution: string;
+          degree: string | null;
+          field_of_study: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["education"]["Row"]> & {
+          user_id: string;
+          institution: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["education"]["Row"]>;
+        Relationships: [];
+      };
+      work_experience: {
+        Row: {
+          id: string;
+          user_id: string;
+          company: string;
+          title: string;
+          location: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["work_experience"]["Row"]> & {
+          user_id: string;
+          company: string;
+          title: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["work_experience"]["Row"]>;
+        Relationships: [];
+      };
       subscriptions: {
         Row: {
           id: string;
