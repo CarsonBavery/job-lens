@@ -37,3 +37,23 @@ export const blocksJsonSchema = {
   },
   required: ["blocks"],
 };
+
+// One-time GitHub README -> project summary shape (see
+// lib/gemini/summarizeProject.ts). techStack is a single comma-separated
+// string, not an array, to match projects.tech_stack's plain-text column --
+// keeps this editable as an ordinary text input in the profile UI rather
+// than needing dedicated tag-list editing.
+export const ProjectSummarySchema = z.object({
+  description: z.string(),
+  techStack: z.string(),
+});
+export type ProjectSummary = z.infer<typeof ProjectSummarySchema>;
+
+export const projectSummaryJsonSchema = {
+  type: "object",
+  properties: {
+    description: { type: "string" },
+    techStack: { type: "string" },
+  },
+  required: ["description", "techStack"],
+};

@@ -26,6 +26,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link href="/dashboard/jobs" className="hover:underline">
             Jobs
           </Link>
+          <Link href="/dashboard/profile" className="hover:underline">
+            Profile
+          </Link>
           <form action={signOut}>
             <button type="submit" className="text-gray-500 hover:text-foreground">
               Sign out

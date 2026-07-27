@@ -17,6 +17,10 @@ import {
 import { tailorResumeContent } from "@/lib/gemini/tailorResume";
 import { tiptapToPlainText } from "@/lib/tiptap/toPlainText";
 import { blocksToTiptap } from "@/lib/tiptap/fromBlocks";
+import { listProjects } from "@/lib/projects/db";
+import { listEducation } from "@/lib/education/db";
+import { listWorkExperience } from "@/lib/workExperience/db";
+import { formatCareerProfileForPrompt } from "@/lib/profile/formatForPrompt";
 
 async function requireUserAndTier() {
   const supabase = await createClient();
@@ -92,11 +96,19 @@ export async function tailorResume(
     return { error: "Resume not found." };
   }
 
+  const [projects, education, workExperience] = await Promise.all([
+    listProjects(supabase, user.id),
+    listEducation(supabase, user.id),
+    listWorkExperience(supabase, user.id),
+  ]);
+  const careerProfile = formatCareerProfileForPrompt(projects, education, workExperience);
+
   let blocks;
   try {
     blocks = await tailorResumeContent({
       resumeText: tiptapToPlainText(source.content as JSONContent),
       jobDescription,
+      careerProfile,
     });
   } catch {
     return { error: "The AI tailoring request failed. Try again in a moment." };
