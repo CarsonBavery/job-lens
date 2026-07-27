@@ -97,6 +97,7 @@ export interface Database {
           posted_at: string | null;
           embedding: number[] | null;
           dedup_group_id: string | null;
+          dedup_key: string | null;
           raw: Record<string, unknown> | null;
           created_at: string;
           updated_at: string;
@@ -155,7 +156,22 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      match_job_postings: {
+        Args: {
+          query_embedding: number[];
+          match_company: string;
+          match_threshold?: number;
+          match_count?: number;
+          exclude_id?: string | null;
+        };
+        Returns: {
+          id: string;
+          title: string;
+          company: string;
+          dedup_group_id: string | null;
+          similarity: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;

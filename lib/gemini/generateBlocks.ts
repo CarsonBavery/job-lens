@@ -1,15 +1,18 @@
 import { getGeminiClient, GEMINI_TEXT_MODEL } from "./client";
+import { retryOnRateLimit } from "./retryOnRateLimit";
 import { BlocksResponseSchema, blocksJsonSchema, type Block } from "./schemas";
 
 export async function generateBlocks(prompt: string): Promise<Block[]> {
-  const response = await getGeminiClient().models.generateContent({
-    model: GEMINI_TEXT_MODEL,
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseJsonSchema: blocksJsonSchema,
-    },
-  });
+  const response = await retryOnRateLimit(() =>
+    getGeminiClient().models.generateContent({
+      model: GEMINI_TEXT_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema: blocksJsonSchema,
+      },
+    }),
+  );
 
   const text = response.text;
   if (!text) {

@@ -32,6 +32,13 @@ test.afterAll(async () => {
 });
 
 test("resume tailoring and cover letter generation work end-to-end", async ({ page }) => {
+  // This makes 3 real Gemini calls (tailor + 2 cover letter generations);
+  // retryOnRateLimit can wait out a real ~60s retryDelay, or up to 2
+  // ~66s fallback retries, per call on a 429 (see
+  // lib/gemini/retryOnRateLimit.ts) -- worst case across 3 calls is real,
+  // not padding for its own sake.
+  test.setTimeout(480000);
+
   await page.goto("/login");
   await page.getByLabel("Email").fill(TEST_EMAIL);
   await page.getByLabel("Password").fill(TEST_PASSWORD);
@@ -60,9 +67,10 @@ test("resume tailoring and cover letter generation work end-to-end", async ({ pa
     .fill("Senior Backend Engineer at Acme Corp, scaling high-throughput APIs.");
   await page.getByRole("button", { name: "Generate tailored resume" }).click();
 
+  // No explicit timeout: inherits use.navigationTimeout from playwright.config.ts,
+  // which accounts for a real Gemini retry wait.
   await page.waitForURL(
     (url) => url.pathname !== new URL(baseResumeUrl).pathname && /\/dashboard\/resumes\//.test(url.pathname),
-    { timeout: 30000 },
   );
   await expect(page.getByTestId("document-title")).toHaveValue(/tailored/i);
   const tailoredResumeUrl = page.url();
@@ -87,7 +95,7 @@ test("resume tailoring and cover letter generation work end-to-end", async ({ pa
     .fill("Senior Backend Engineer at Acme Corp, scaling high-throughput APIs.");
   await page.getByRole("button", { name: "Generate cover letter" }).click();
 
-  await page.waitForURL(/\/dashboard\/cover-letters\/[0-9a-f-]{36}$/, { timeout: 30000 });
+  await page.waitForURL(/\/dashboard\/cover-letters\/[0-9a-f-]{36}$/);
   await expect(page.getByTestId("document-title")).toHaveValue(/Cover Letter/i);
   const baseCoverLetterUrl = page.url();
 
@@ -106,7 +114,6 @@ test("resume tailoring and cover letter generation work end-to-end", async ({ pa
     (url) =>
       url.pathname !== new URL(baseCoverLetterUrl).pathname &&
       /\/dashboard\/cover-letters\/[0-9a-f-]{36}$/.test(url.pathname),
-    { timeout: 30000 },
   );
 
   // --- That second one must be discoverable from the base cover letter ---
