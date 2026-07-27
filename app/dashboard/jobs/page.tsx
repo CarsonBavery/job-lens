@@ -20,6 +20,7 @@ export default async function JobsPage({
   let query = supabase
     .from("job_postings")
     .select("id, company, title, location, remote, url, posted_at")
+    .eq("status", "active")
     .order("posted_at", { ascending: false })
     .limit(50);
 

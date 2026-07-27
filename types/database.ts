@@ -10,6 +10,7 @@ export type ApplicationStatus =
   | "offer"
   | "rejected";
 export type JobSourceName = "greenhouse" | "lever" | "ashby" | "workable";
+export type JobPostingStatus = "active" | "closed";
 
 export interface Database {
   public: {
@@ -100,6 +101,7 @@ export interface Database {
           embedding: number[] | null;
           dedup_group_id: string | null;
           dedup_key: string | null;
+          status: JobPostingStatus;
           raw: Record<string, unknown> | null;
           created_at: string;
           updated_at: string;

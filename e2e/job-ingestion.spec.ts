@@ -55,15 +55,53 @@ test("ingestion pipeline fetches, embeds, and upserts real postings idempotently
   expect(countAfterSecondRun).toBe(countAfterFirstRun);
 
   // Every ingested posting should have gotten a dedup_group_id (its own id,
-  // since nothing else in the seed set matches it).
+  // since nothing else in the seed set matches it), and stay 'active' since
+  // it was fetched again on the second run (not wrongly closed).
   const { data: sample } = await admin
     .from("job_postings")
-    .select("id, dedup_group_id, embedding")
+    .select("id, dedup_group_id, embedding, status")
     .eq("company", "Linear")
     .limit(1)
     .single();
   expect(sample?.dedup_group_id).toBeTruthy();
   expect(sample?.embedding).toBeTruthy();
+  expect(sample?.status).toBe("active");
+});
+
+test("a posting no longer returned by the source gets marked closed", async () => {
+  test.setTimeout(220000);
+
+  // A real posting for a real company, upserted directly rather than
+  // through a live ATS fetch, specifically so this test controls whether
+  // it "disappears" on the next fetch -- real Linear postings can't be
+  // reliably made to vanish on demand for a test.
+  const { data: source } = await admin
+    .from("job_sources")
+    .select("id")
+    .eq("name", "ashby")
+    .single();
+
+  const fakeExternalId = `e2e-closure-test-${Date.now()}`;
+  await admin.from("job_postings").insert({
+    source_id: source!.id,
+    external_id: fakeExternalId,
+    company: "Linear",
+    title: "E2E Closure Test Posting",
+    url: "https://example.com/closure-test",
+    status: "active",
+  });
+
+  await runIngestion(TEST_COMPANY);
+
+  const { data: after } = await admin
+    .from("job_postings")
+    .select("status")
+    .eq("source_id", source!.id)
+    .eq("external_id", fakeExternalId)
+    .single();
+  expect(after?.status).toBe("closed");
+
+  await admin.from("job_postings").delete().eq("source_id", source!.id).eq("external_id", fakeExternalId);
 });
 
 test("ingested jobs are visible and searchable in the dashboard", async ({ page }) => {
