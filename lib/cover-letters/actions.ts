@@ -18,6 +18,8 @@ import {
 import { generateCoverLetterContent } from "@/lib/gemini/generateCoverLetter";
 import { tiptapToPlainText } from "@/lib/tiptap/toPlainText";
 import { blocksToTiptap } from "@/lib/tiptap/fromBlocks";
+import { checkAiRateLimit } from "@/lib/aiUsage/rateLimit";
+import { recordAiGeneration } from "@/lib/aiUsage/db";
 
 async function requireUserAndTier() {
   const supabase = await createClient();
@@ -90,6 +92,11 @@ export async function generateCoverLetter(
     return { error: "Paste the job description first." };
   }
 
+  const rateLimitError = await checkAiRateLimit(supabase, user.id, tier);
+  if (rateLimitError) {
+    return { error: rateLimitError };
+  }
+
   const resume = await getDocument(supabase, "resumes", resumeId);
   if (!resume) {
     return { error: "Resume not found." };
@@ -104,6 +111,7 @@ export async function generateCoverLetter(
   } catch {
     return { error: "The AI generation request failed. Try again in a moment." };
   }
+  await recordAiGeneration(supabase, user.id);
 
   const count = await countBaseDocuments(supabase, "cover_letters", user.id);
   const isBase = count < baseDocumentLimit("cover_letters", tier);
