@@ -194,6 +194,18 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["work_experience"]["Row"]>;
         Relationships: [];
       };
+      ai_generation_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["ai_generation_events"]["Row"]> & {
+          user_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_generation_events"]["Row"]>;
+        Relationships: [];
+      };
       subscriptions: {
         Row: {
           id: string;

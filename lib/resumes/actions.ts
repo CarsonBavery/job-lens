@@ -21,6 +21,8 @@ import { listProjects } from "@/lib/projects/db";
 import { listEducation } from "@/lib/education/db";
 import { listWorkExperience } from "@/lib/workExperience/db";
 import { formatCareerProfileForPrompt } from "@/lib/profile/formatForPrompt";
+import { checkAiRateLimit } from "@/lib/aiUsage/rateLimit";
+import { recordAiGeneration } from "@/lib/aiUsage/db";
 
 async function requireUserAndTier() {
   const supabase = await createClient();
@@ -79,16 +81,17 @@ export async function tailorResume(
   _prevState: TailorResumeState,
   formData: FormData,
 ): Promise<TailorResumeState> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user, tier } = await requireUserAndTier();
 
   const resumeId = formData.get("resumeId") as string;
   const jobDescription = (formData.get("jobDescription") as string)?.trim();
   if (!jobDescription) {
     return { error: "Paste the job description first." };
+  }
+
+  const rateLimitError = await checkAiRateLimit(supabase, user.id, tier);
+  if (rateLimitError) {
+    return { error: rateLimitError };
   }
 
   const source = await getDocument(supabase, "resumes", resumeId);
@@ -113,6 +116,7 @@ export async function tailorResume(
   } catch {
     return { error: "The AI tailoring request failed. Try again in a moment." };
   }
+  await recordAiGeneration(supabase, user.id);
 
   const id = await insertDocument(
     supabase,

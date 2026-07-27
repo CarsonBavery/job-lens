@@ -7,6 +7,8 @@ import type { SubscriptionTier } from "@/lib/documents/db";
 import { countProjects, deleteProject, insertProject, projectLimit, updateProject } from "./db";
 import { fetchGithubRepo } from "@/lib/github/fetchRepo";
 import { summarizeProjectFromReadme } from "@/lib/gemini/summarizeProject";
+import { checkAiRateLimit } from "@/lib/aiUsage/rateLimit";
+import { recordAiGeneration } from "@/lib/aiUsage/db";
 
 async function requireUserAndTier() {
   const supabase = await createClient();
@@ -55,6 +57,10 @@ export async function createProject(
   let techStack = manualTechStack;
 
   if (githubUrl) {
+    const rateLimitError = await checkAiRateLimit(supabase, user.id, tier);
+    if (rateLimitError) {
+      return { error: rateLimitError };
+    }
     try {
       const repo = await fetchGithubRepo(githubUrl);
       const summary = await summarizeProjectFromReadme({
@@ -65,6 +71,7 @@ export async function createProject(
       });
       description = summary.description;
       techStack = summary.techStack;
+      await recordAiGeneration(supabase, user.id);
     } catch (err) {
       return { error: err instanceof Error ? err.message : "Couldn't summarize that repository." };
     }
