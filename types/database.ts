@@ -40,6 +40,8 @@ export interface Database {
           file_path: string | null;
           is_base: boolean;
           base_resume_id: string | null;
+          embedding: number[] | null;
+          embedding_source_hash: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -168,6 +170,23 @@ export interface Database {
           id: string;
           title: string;
           company: string;
+          dedup_group_id: string | null;
+          similarity: number;
+        }[];
+      };
+      match_jobs_for_resume: {
+        Args: {
+          query_embedding: number[];
+          match_threshold?: number;
+          match_count?: number;
+        };
+        Returns: {
+          id: string;
+          title: string;
+          company: string;
+          location: string | null;
+          remote: boolean;
+          url: string;
           dedup_group_id: string | null;
           similarity: number;
         }[];

@@ -5,6 +5,7 @@ import { updateResumeContent } from "@/lib/resumes/actions";
 import { DocumentEditor } from "@/components/editor/DocumentEditor";
 import { TailorResumeForm } from "@/components/editor/TailorResumeForm";
 import { TailoredVersionsList } from "@/components/editor/TailoredVersionsList";
+import { MatchingJobsPanel } from "@/components/editor/MatchingJobsPanel";
 
 export default async function ResumeEditorPage({
   params,
@@ -34,6 +35,7 @@ export default async function ResumeEditorPage({
         exportHref={`/api/resumes/${resume.id}/export`}
       />
       <TailorResumeForm resumeId={resume.id} />
+      <MatchingJobsPanel resumeId={resume.id} />
       <TailoredVersionsList versions={tailoredVersions} hrefPrefix="/dashboard/resumes" />
     </div>
   );
