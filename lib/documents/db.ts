@@ -116,6 +116,25 @@ export async function listBaseDocuments(
   return (data ?? []) as DocumentRecord[];
 }
 
+// Every resume/cover letter a user has, base and tailored alike -- used to
+// populate the "which version did you actually use" picker on an
+// application (Phase 7). listBaseDocuments alone would hide every tailored
+// version, which defeats the point: an application should be able to point
+// at the exact tailored copy sent for that job, not just a base document.
+export async function listAllDocuments(
+  supabase: SupabaseClient<Database>,
+  table: DocTable,
+  userId: string,
+): Promise<DocumentRecord[]> {
+  const { data, error } = await supabase
+    .from(table)
+    .select("id, user_id, title, content, is_base, created_at, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as DocumentRecord[];
+}
+
 // Tailored/AI-generated variants (is_base: false) don't show up in
 // listBaseDocuments, so without this they become unreachable the moment a
 // user navigates away from the redirect that created them -- there is no

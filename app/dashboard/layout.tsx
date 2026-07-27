@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -26,12 +27,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link href="/dashboard/jobs" className="hover:underline">
             Jobs
           </Link>
+          <Link href="/dashboard/applications" className="hover:underline">
+            Applications
+          </Link>
           <Link href="/dashboard/profile" className="hover:underline">
             Profile
           </Link>
           <Link href="/dashboard/billing" className="hover:underline">
             Billing
           </Link>
+          <NotificationBell />
           <form action={signOut}>
             <button type="submit" className="text-gray-500 hover:text-foreground">
               Sign out

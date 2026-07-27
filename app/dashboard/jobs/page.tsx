@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { saveJob } from "@/lib/applications/actions";
 
 // PostgREST's .or() takes a comma-separated filter string, so raw user
 // input can't be interpolated into it directly -- a comma or parenthesis in
@@ -16,6 +17,9 @@ export default async function JobsPage({
 }) {
   const { q, remote } = await searchParams;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   let query = supabase
     .from("job_postings")
@@ -34,6 +38,21 @@ export default async function JobsPage({
 
   const { data: postings, error } = await query;
   if (error) throw error;
+
+  const postingIds = (postings ?? []).map((p) => p.id);
+  let savedIds = new Set<string>();
+  if (user && postingIds.length > 0) {
+    const { data: saved } = await supabase
+      .from("applications")
+      .select("job_posting_id")
+      .eq("user_id", user.id)
+      .in("job_posting_id", postingIds);
+    savedIds = new Set(
+      (saved ?? [])
+        .map((a) => a.job_posting_id)
+        .filter((id): id is string => id !== null),
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,20 +82,35 @@ export default async function JobsPage({
         className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800"
       >
         {(postings ?? []).map((posting) => (
-          <li key={posting.id} className="flex flex-col gap-1 py-3">
-            <a
-              href={posting.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium hover:underline"
-            >
-              {posting.title}
-            </a>
-            <p className="text-sm text-gray-500">
-              {posting.company}
-              {posting.location ? ` — ${posting.location}` : ""}
-              {posting.remote ? " — Remote" : ""}
-            </p>
+          <li key={posting.id} className="flex items-center justify-between gap-3 py-3">
+            <div className="flex flex-col gap-1">
+              <a
+                href={posting.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium hover:underline"
+              >
+                {posting.title}
+              </a>
+              <p className="text-sm text-gray-500">
+                {posting.company}
+                {posting.location ? ` — ${posting.location}` : ""}
+                {posting.remote ? " — Remote" : ""}
+              </p>
+            </div>
+            {savedIds.has(posting.id) ? (
+              <span className="shrink-0 text-sm text-gray-500">Saved</span>
+            ) : (
+              <form action={saveJob}>
+                <input type="hidden" name="jobPostingId" value={posting.id} />
+                <button
+                  type="submit"
+                  className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+                >
+                  Save
+                </button>
+              </form>
+            )}
           </li>
         ))}
         {(postings ?? []).length === 0 && (

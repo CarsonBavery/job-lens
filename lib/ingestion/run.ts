@@ -8,6 +8,10 @@ import { buildDedupKey } from "./normalize";
 import { embedJobPostingTexts } from "./embed";
 import { resolveDedupGroup } from "./dedup";
 import type { NormalizedJobPosting } from "./types";
+import { listApplicationsForJobPostings } from "@/lib/applications/db";
+import { createNotification } from "@/lib/notifications/db";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
 
 export interface IngestionSummary {
   company: string;
@@ -44,6 +48,36 @@ function errorMessage(err: unknown): string {
     return String((err as { message: unknown }).message);
   }
   return String(err);
+}
+
+// Any user with a saved/applied application pointing at one of these
+// postings gets an in-app notification -- their application isn't
+// deleted, just moved out of the "active" board view (see
+// app/dashboard/applications/page.tsx). Failures here are logged, not
+// thrown: a notification glitch shouldn't fail the whole ingestion run
+// after the actual posting-status update already succeeded.
+async function notifyClosedPostings(
+  supabase: SupabaseClient<Database>,
+  closedPostings: { id: string; title: string; company: string }[],
+): Promise<void> {
+  try {
+    const applications = await listApplicationsForJobPostings(
+      supabase,
+      closedPostings.map((p) => p.id),
+    );
+    const postingById = new Map(closedPostings.map((p) => [p.id, p]));
+    for (const application of applications) {
+      const posting = application.job_posting_id ? postingById.get(application.job_posting_id) : undefined;
+      if (!posting) continue;
+      await createNotification(supabase, {
+        userId: application.user_id,
+        message: `${posting.title} at ${posting.company} is no longer available.`,
+        applicationId: application.id,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to notify users about closed postings:", errorMessage(err));
+  }
 }
 
 function embeddingTextFor(posting: NormalizedJobPosting): string {
@@ -135,7 +169,7 @@ export async function runIngestion(
     try {
       const { data: previouslyActive, error: activeError } = await supabase
         .from("job_postings")
-        .select("external_id")
+        .select("id, external_id, title, company")
         .eq("source_id", sourceId)
         .eq("company", config.companyName)
         .eq("status", "active");
@@ -154,6 +188,11 @@ export async function runIngestion(
           .in("external_id", closedIds);
         if (closeError) throw closeError;
         summary.closed = closedIds.length;
+
+        const closedPostings = (previouslyActive ?? []).filter((row) =>
+          closedIds.includes(row.external_id),
+        );
+        await notifyClosedPostings(supabase, closedPostings);
       }
     } catch (err) {
       summary.errors.push(`Closing stale postings failed for ${config.companyName}: ${errorMessage(err)}`);
