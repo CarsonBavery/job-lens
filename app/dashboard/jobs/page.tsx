@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { saveJob } from "@/lib/applications/actions";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 // PostgREST's .or() takes a comma-separated filter string, so raw user
 // input can't be interpolated into it directly -- a comma or parenthesis in
@@ -59,30 +62,23 @@ export default async function JobsPage({
       <h1 className="text-2xl font-semibold">Jobs</h1>
 
       <form className="flex flex-wrap items-center gap-3">
-        <input
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder="Search by title or company…"
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
-        />
+        <Input name="q" defaultValue={q ?? ""} placeholder="Search by title or company…" className="flex-1" />
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="remote" value="true" defaultChecked={remote === "true"} />
+          <input
+            type="checkbox"
+            name="remote"
+            value="true"
+            defaultChecked={remote === "true"}
+            className="size-4 rounded border-input accent-primary"
+          />
           Remote only
         </label>
-        <button
-          type="submit"
-          className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
-        >
-          Search
-        </button>
+        <Button type="submit">Search</Button>
       </form>
 
-      <ul
-        data-testid="job-results"
-        className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800"
-      >
+      <Card className="divide-y py-0" data-testid="job-results">
         {(postings ?? []).map((posting) => (
-          <li key={posting.id} className="flex items-center justify-between gap-3 py-3">
+          <div key={posting.id} className="flex items-center justify-between gap-3 px-4 py-3">
             <div className="flex flex-col gap-1">
               <a
                 href={posting.url}
@@ -92,33 +88,30 @@ export default async function JobsPage({
               >
                 {posting.title}
               </a>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {posting.company}
                 {posting.location ? ` — ${posting.location}` : ""}
                 {posting.remote ? " — Remote" : ""}
               </p>
             </div>
             {savedIds.has(posting.id) ? (
-              <span className="shrink-0 text-sm text-gray-500">Saved</span>
+              <span className="shrink-0 text-sm text-muted-foreground">Saved</span>
             ) : (
               <form action={saveJob}>
                 <input type="hidden" name="jobPostingId" value={posting.id} />
-                <button
-                  type="submit"
-                  className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
-                >
+                <Button type="submit" variant="outline" size="sm" className="shrink-0">
                   Save
-                </button>
+                </Button>
               </form>
             )}
-          </li>
+          </div>
         ))}
         {(postings ?? []).length === 0 && (
-          <p className="py-6 text-sm text-gray-500">
+          <p className="px-4 py-6 text-sm text-muted-foreground">
             No jobs found. If this is a fresh setup, the ingestion cron hasn&apos;t run yet.
           </p>
         )}
-      </ul>
+      </Card>
     </div>
   );
 }

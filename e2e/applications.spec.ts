@@ -99,11 +99,13 @@ test("saving a job, tracking its status, and losing it when the posting closes",
     expect(notifications![0].read).toBe(false);
 
     await page.reload();
-    await page.getByText("Notifications (1)").click();
+    const notificationsSummary = page.locator("summary").filter({ hasText: "Notifications" });
+    await expect(notificationsSummary).toContainText("1");
+    await notificationsSummary.click();
     await page.getByRole("button", { name: "Dismiss" }).click();
     await page.waitForTimeout(1000);
     await page.reload();
-    await expect(page.getByText("Notifications (1)")).not.toBeVisible();
+    await expect(page.locator("summary").filter({ hasText: "Notifications" })).not.toContainText("1");
   } finally {
     await admin.from("job_postings").delete().eq("id", posting!.id);
     await admin.from("resumes").delete().eq("id", resume!.id);

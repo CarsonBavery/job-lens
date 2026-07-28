@@ -8,6 +8,10 @@ import {
 } from "@/lib/documents/db";
 import { createCoverLetter, deleteCoverLetter } from "@/lib/cover-letters/actions";
 import { GenerateCoverLetterForm } from "@/components/editor/GenerateCoverLetterForm";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 export default async function CoverLettersPage({
   searchParams,
@@ -40,37 +44,35 @@ export default async function CoverLettersPage({
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Cover Letters</h1>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-muted-foreground">
           {count} / {limit} used
         </span>
       </div>
 
       {error === "limit" && (
-        <p className="rounded-md bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200">
-          You&apos;ve reached your {tier} tier limit of {limit} cover letter
-          {limit === 1 ? "" : "s"}. Upgrade to add more.
-        </p>
+        <Alert>
+          <AlertDescription>
+            You&apos;ve reached your {tier} tier limit of {limit} cover letter
+            {limit === 1 ? "" : "s"}. Upgrade to add more.
+          </AlertDescription>
+        </Alert>
       )}
 
       <form action={createCoverLetter} className="flex gap-2">
-        <input
+        <Input
           name="title"
           placeholder="e.g. General Cover Letter"
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
+          className="flex-1"
           disabled={atLimit}
         />
-        <button
-          type="submit"
-          disabled={atLimit}
-          className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
-        >
+        <Button type="submit" disabled={atLimit}>
           New Cover Letter
-        </button>
+        </Button>
       </form>
 
-      <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+      <Card className="divide-y py-0">
         {coverLetters.map((coverLetter) => (
-          <li key={coverLetter.id} className="flex items-center justify-between py-3">
+          <div key={coverLetter.id} className="flex items-center justify-between px-4 py-3">
             <Link
               href={`/dashboard/cover-letters/${coverLetter.id}`}
               className="font-medium hover:underline"
@@ -80,23 +82,23 @@ export default async function CoverLettersPage({
             <div className="flex items-center gap-3">
               <a
                 href={`/api/cover-letters/${coverLetter.id}/export`}
-                className="text-sm text-gray-500 hover:text-foreground"
+                className="text-sm text-muted-foreground hover:text-foreground"
               >
                 Export .docx
               </a>
               <form action={deleteCoverLetter}>
                 <input type="hidden" name="id" value={coverLetter.id} />
-                <button type="submit" className="text-sm text-red-600 hover:underline">
+                <Button type="submit" variant="ghost" size="sm" className="text-destructive">
                   Delete
-                </button>
+                </Button>
               </form>
             </div>
-          </li>
+          </div>
         ))}
         {coverLetters.length === 0 && (
-          <p className="py-6 text-sm text-gray-500">No cover letters yet.</p>
+          <p className="px-4 py-6 text-sm text-muted-foreground">No cover letters yet.</p>
         )}
-      </ul>
+      </Card>
 
       <GenerateCoverLetterForm resumes={resumes.map((r) => ({ id: r.id, title: r.title }))} />
     </div>

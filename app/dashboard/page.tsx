@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { baseDocumentLimit, countBaseDocuments, type SubscriptionTier } from "@/lib/documents/db";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -23,32 +25,35 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Link
-          href="/dashboard/resumes"
-          className="rounded-lg border border-gray-200 p-6 transition-colors hover:border-gray-400 dark:border-gray-800 dark:hover:border-gray-600"
-        >
-          <p className="text-sm text-gray-500">Resumes</p>
-          <p className="text-3xl font-semibold">
-            {resumeCount} / {baseDocumentLimit("resumes", tier)}
-          </p>
-        </Link>
-        <Link
-          href="/dashboard/cover-letters"
-          className="rounded-lg border border-gray-200 p-6 transition-colors hover:border-gray-400 dark:border-gray-800 dark:hover:border-gray-600"
-        >
-          <p className="text-sm text-gray-500">Cover Letters</p>
-          <p className="text-3xl font-semibold">
-            {coverLetterCount} / {baseDocumentLimit("cover_letters", tier)}
-          </p>
-        </Link>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <Badge variant="secondary" className="capitalize">
+          {tier} plan
+        </Badge>
       </div>
 
-      <p className="text-sm text-gray-500">
-        Plan: <span className="font-medium capitalize">{tier}</span>
-      </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link href="/dashboard/resumes">
+          <Card className="transition-colors hover:ring-primary/40">
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Resumes</p>
+              <p className="text-3xl font-semibold">
+                {resumeCount} / {baseDocumentLimit("resumes", tier)}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/dashboard/cover-letters">
+          <Card className="transition-colors hover:ring-primary/40">
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Cover Letters</p>
+              <p className="text-3xl font-semibold">
+                {coverLetterCount} / {baseDocumentLimit("cover_letters", tier)}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
     </div>
   );
 }

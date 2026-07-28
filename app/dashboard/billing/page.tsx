@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createCheckoutSession, createPortalSession } from "@/lib/stripe/actions";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default async function BillingPage({
   searchParams,
@@ -31,45 +35,43 @@ export default async function BillingPage({
       <h1 className="text-2xl font-semibold">Billing</h1>
 
       {checkout === "success" && (
-        <p className="rounded-md bg-green-50 px-4 py-2 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">
-          Subscription updated. It may take a moment to reflect below.
-        </p>
+        <Alert>
+          <AlertDescription>
+            Subscription updated. It may take a moment to reflect below.
+          </AlertDescription>
+        </Alert>
       )}
       {checkout === "canceled" && (
-        <p className="rounded-md bg-gray-50 px-4 py-2 text-sm text-gray-600 dark:bg-gray-900 dark:text-gray-400">
-          Checkout canceled.
-        </p>
+        <Alert>
+          <AlertDescription>Checkout canceled.</AlertDescription>
+        </Alert>
       )}
 
-      <div className="rounded-md border border-gray-200 p-4 dark:border-gray-800">
-        <p className="text-sm text-gray-500">Current plan</p>
-        <p className="text-lg font-medium capitalize">{tier}</p>
-        {subscription && (
-          <p className="mt-1 text-sm text-gray-500">
-            Status: {subscription.status}
-            {subscription.current_period_end &&
-              ` · renews ${new Date(subscription.current_period_end).toLocaleDateString()}`}
-          </p>
-        )}
-      </div>
+      <Card>
+        <CardContent className="flex flex-col gap-1">
+          <p className="text-sm text-muted-foreground">Current plan</p>
+          <Badge variant="secondary" className="w-fit text-base capitalize">
+            {tier}
+          </Badge>
+          {subscription && (
+            <p className="text-sm text-muted-foreground">
+              Status: {subscription.status}
+              {subscription.current_period_end &&
+                ` · renews ${new Date(subscription.current_period_end).toLocaleDateString()}`}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {tier === "free" ? (
         <form action={createCheckoutSession}>
-          <button
-            type="submit"
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
-          >
-            Upgrade to Pro
-          </button>
+          <Button type="submit">Upgrade to Pro</Button>
         </form>
       ) : (
         <form action={createPortalSession}>
-          <button
-            type="submit"
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
-          >
+          <Button type="submit" variant="outline">
             Manage subscription
-          </button>
+          </Button>
         </form>
       )}
     </div>

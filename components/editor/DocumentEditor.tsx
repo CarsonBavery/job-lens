@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorToolbar } from "./EditorToolbar";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -66,21 +68,16 @@ export function DocumentEditor({
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <div className="flex items-center justify-between">
-        <Link href={backHref} className="text-sm text-gray-500 hover:text-foreground">
+        <Link href={backHref} className="text-sm text-muted-foreground hover:text-foreground">
           ← Back
         </Link>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             {status === "saving" && "Saving…"}
             {status === "saved" && "Saved"}
             {status === "error" && "Failed to save"}
           </span>
-          <a
-            href={exportHref}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
-          >
-            Export .docx
-          </a>
+          <Button variant="outline" size="sm" render={<a href={exportHref}>Export .docx</a>} />
         </div>
       </div>
 
@@ -91,14 +88,14 @@ export function DocumentEditor({
           setTitle(e.target.value);
           scheduleSave();
         }}
-        className="w-full border-b border-transparent bg-transparent text-2xl font-semibold outline-none focus:border-gray-300"
+        className="w-full border-b border-transparent bg-transparent text-2xl font-semibold outline-none focus:border-border"
       />
 
       {editor && <EditorToolbar editor={editor} />}
 
-      <div className="rounded-md border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+      <Card className="p-8 shadow-sm">
         <EditorContent editor={editor} />
-      </div>
+      </Card>
     </div>
   );
 }
