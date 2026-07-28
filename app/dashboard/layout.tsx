@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 
 const NAV_LINKS = [
@@ -42,6 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </Link>
             ))}
             <NotificationBell />
+            <ThemeToggle />
             <form action={signOut}>
               <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground">
                 Sign out

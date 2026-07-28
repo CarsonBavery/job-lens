@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SiteHeader } from "@/components/layout/SiteHeader";
 
 const initialState: AuthActionState = { error: null };
 
@@ -17,7 +18,9 @@ export default function SignupPage() {
   const [state, formAction, isPending] = useActionState(signUpWithPassword, initialState);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-12">
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Create your JobLens account</CardTitle>
@@ -59,6 +62,7 @@ export default function SignupPage() {
           </p>
         </CardContent>
       </Card>
-    </main>
+      </main>
+    </div>
   );
 }
