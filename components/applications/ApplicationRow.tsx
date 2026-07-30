@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 const STATUSES: ApplicationStatus[] = ["saved", "applied", "interviewing", "offer", "rejected"];
 
 const selectClass =
-  "mt-1 block w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+  "mt-1 block h-10 w-full rounded-lg border border-input bg-transparent px-3 py-1.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 export function ApplicationRow({
   application,

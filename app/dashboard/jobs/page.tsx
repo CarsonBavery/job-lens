@@ -69,7 +69,7 @@ export default async function JobsPage({
             name="remote"
             value="true"
             defaultChecked={remote === "true"}
-            className="size-4 rounded border-input accent-primary"
+            className="size-5 rounded border-input accent-primary"
           />
           Remote only
         </label>

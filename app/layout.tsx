@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// Self-hosted (app/fonts/), not next/font/google -- fetching Geist from
+// Google's CDN at build time proved unreliable in this environment (a
+// blocked/slow connection silently falls back to the browser's default
+// serif, which is exactly what read as "plain, like an essay" -- see
+// PROGRESS.md). A local file has no network dependency at build or
+// runtime. Plus Jakarta Sans variable file covers weights 200-800.
+const jakartaSans = localFont({
+  src: "./fonts/PlusJakartaSans-Variable.woff2",
+  variable: "--font-sans",
+  weight: "200 800",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -29,15 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={jakartaSans.variable}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
