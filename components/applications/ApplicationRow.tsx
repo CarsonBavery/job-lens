@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
 
 const STATUSES: ApplicationStatus[] = ["saved", "applied", "interviewing", "offer", "rejected"];
 
@@ -119,12 +120,16 @@ export function ApplicationRow({
             </Button>
           </form>
 
-          <form action={deleteApplicationAction}>
+          <form id={`delete-application-${application.id}`} action={deleteApplicationAction}>
             <input type="hidden" name="id" value={application.id} />
-            <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-              Remove
-            </Button>
           </form>
+          <DeleteConfirmButton
+            formId={`delete-application-${application.id}`}
+            itemLabel="application"
+            triggerLabel="Remove"
+            size="sm"
+            className="text-destructive"
+          />
         </CardContent>
       </details>
     </Card>

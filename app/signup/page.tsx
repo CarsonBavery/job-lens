@@ -20,7 +20,7 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-12">
+      <main id="main-content" className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-12">
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Create your JobLens account</CardTitle>

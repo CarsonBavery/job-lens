@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
 
 export default async function ResumesPage({
   searchParams,
@@ -80,12 +81,15 @@ export default async function ResumesPage({
               >
                 Export .docx
               </a>
-              <form action={deleteResume}>
+              <form id={`delete-resume-${resume.id}`} action={deleteResume}>
                 <input type="hidden" name="id" value={resume.id} />
-                <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                  Delete
-                </Button>
               </form>
+              <DeleteConfirmButton
+                formId={`delete-resume-${resume.id}`}
+                itemLabel="resume"
+                size="sm"
+                className="text-destructive"
+              />
             </div>
           </div>
         ))}

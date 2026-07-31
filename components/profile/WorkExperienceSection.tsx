@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
 
 const initialState = { error: null };
 
@@ -60,12 +61,15 @@ export function WorkExperienceSection({ experience }: { experience: WorkExperien
                     Save
                   </Button>
                 </form>
-                <form action={deleteWorkExperienceAction}>
+                <form id={`delete-work-experience-${entry.id}`} action={deleteWorkExperienceAction}>
                   <input type="hidden" name="id" value={entry.id} />
-                  <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                    Delete
-                  </Button>
                 </form>
+                <DeleteConfirmButton
+                  formId={`delete-work-experience-${entry.id}`}
+                  itemLabel="work experience entry"
+                  size="sm"
+                  className="text-destructive"
+                />
               </CardContent>
             </details>
           </Card>

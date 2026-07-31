@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
 
 const initialState = { error: null };
 
@@ -60,12 +61,15 @@ export function EducationSection({ education }: { education: EducationRecord[] }
                     Save
                   </Button>
                 </form>
-                <form action={deleteEducationAction}>
+                <form id={`delete-education-${entry.id}`} action={deleteEducationAction}>
                   <input type="hidden" name="id" value={entry.id} />
-                  <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                    Delete
-                  </Button>
                 </form>
+                <DeleteConfirmButton
+                  formId={`delete-education-${entry.id}`}
+                  itemLabel="education entry"
+                  size="sm"
+                  className="text-destructive"
+                />
               </CardContent>
             </details>
           </Card>
