@@ -7,10 +7,10 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 
 const NAV_LINKS = [
+  { href: "/dashboard/jobs", label: "Job Search" },
+  { href: "/dashboard/applications", label: "Applications" },
   { href: "/dashboard/resumes", label: "Resumes" },
   { href: "/dashboard/cover-letters", label: "Cover Letters" },
-  { href: "/dashboard/jobs", label: "Jobs" },
-  { href: "/dashboard/applications", label: "Applications" },
   { href: "/dashboard/profile", label: "Profile" },
   { href: "/dashboard/billing", label: "Billing" },
 ];
@@ -27,7 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-            <span className="flex size-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+            <span className="flex size-6 items-center justify-center rounded-md bg-primary font-mono text-xs font-bold text-primary-foreground">
               J
             </span>
             JobLens

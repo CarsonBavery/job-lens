@@ -2,23 +2,35 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
-// Self-hosted (app/fonts/), not next/font/google -- fetching Geist from
-// Google's CDN at build time proved unreliable in this environment (a
-// blocked/slow connection silently falls back to the browser's default
-// serif, which is exactly what read as "plain, like an essay" -- see
-// PROGRESS.md). A local file has no network dependency at build or
-// runtime. Plus Jakarta Sans variable file covers weights 200-800.
-const jakartaSans = localFont({
-  src: "./fonts/PlusJakartaSans-Variable.woff2",
+// Self-hosted (app/fonts/), not next/font/google -- fetching from Google's
+// CDN at build time proved unreliable in this environment (see PROGRESS.md).
+// IBM Plex Sans/Mono, not variable builds (IBM Plex doesn't ship one) --
+// four weights of Sans cover UI text, two of Mono cover the data-dense
+// figures (salary, dates, category tags) the job board's redesign leans on.
+const plexSans = localFont({
+  src: [
+    { path: "./fonts/IBMPlexSans-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IBMPlexSans-Medium.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/IBMPlexSans-SemiBold.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/IBMPlexSans-Bold.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-sans",
-  weight: "200 800",
+  display: "swap",
+});
+
+const plexMono = localFont({
+  src: [
+    { path: "./fonts/IBMPlexMono-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IBMPlexMono-Medium.woff2", weight: "500", style: "normal" },
+  ],
+  variable: "--font-mono",
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "JobLens",
   description:
-    "AI-assisted job search: tailored resumes and cover letters, application tracking, and a deduplicated multi-source job board.",
+    "Search real STEM jobs -- software, data/ML, hardware, biotech, and infrastructure roles pulled directly from company ATS platforms, deduplicated and categorized. AI resume and cover letter tailoring built in.",
 };
 
 // Runs before paint so the toggle (see components/theme/ThemeToggle.tsx)
@@ -35,11 +47,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={jakartaSans.variable}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${plexSans.variable} ${plexMono.variable}`}
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <meta name="theme-color" content="oklch(0.99 0.006 75)" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="oklch(0.16 0.012 40)" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="oklch(0.985 0.003 250)" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="oklch(0.145 0.006 250)" media="(prefers-color-scheme: dark)" />
       </head>
       <body className="antialiased">
         <a

@@ -57,6 +57,13 @@ export async function listJobPostings(
   return data ?? [];
 }
 
+export function formatSalary(min: number | null, max: number | null): string | null {
+  if (!min && !max) return null;
+  const fmt = (n: number) => `$${Math.round(n / 1000)}k`;
+  if (min && max) return `${fmt(min)}–${fmt(max)}`;
+  return fmt((min ?? max)!);
+}
+
 export async function getJobPosting(
   supabase: SupabaseClient<Database>,
   id: string,

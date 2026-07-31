@@ -43,7 +43,7 @@ test("resume tailoring and cover letter generation work end-to-end", async ({ pa
   await page.getByLabel("Email").fill(TEST_EMAIL);
   await page.getByLabel("Password").fill(TEST_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL(/\/dashboard$/);
+  await page.waitForURL(/\/dashboard\/jobs$/);
 
   // --- Create a base resume ---
   await page.goto("/dashboard/resumes");

@@ -122,7 +122,7 @@ test("ingested jobs are visible and searchable in the dashboard", async ({ page 
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(/\/dashboard$/);
+    await page.waitForURL(/\/dashboard\/jobs$/);
 
     await page.goto("/dashboard/jobs?q=Linear");
     const results = page.getByTestId("job-results");

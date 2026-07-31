@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getJobPosting } from "@/lib/jobs/db";
+import { getJobPosting, formatSalary } from "@/lib/jobs/db";
 import { listBaseDocuments } from "@/lib/documents/db";
 import { findApplicationByJobPosting } from "@/lib/applications/db";
 import { saveJob } from "@/lib/applications/actions";
@@ -10,13 +10,6 @@ import { TailorForJobForm } from "@/components/jobs/TailorForJobForm";
 import { GenerateCoverLetterForJobForm } from "@/components/jobs/GenerateCoverLetterForJobForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-
-function formatSalary(min: number | null, max: number | null): string | null {
-  if (!min && !max) return null;
-  const fmt = (n: number) => `$${Math.round(n / 1000)}k`;
-  if (min && max) return `${fmt(min)}–${fmt(max)}`;
-  return fmt((min ?? max)!);
-}
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

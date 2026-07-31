@@ -29,7 +29,7 @@ test("career profile: GitHub project summarization, editing, and tailoring integ
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(/\/dashboard$/);
+    await page.waitForURL(/\/dashboard\/jobs$/);
 
     await page.goto("/dashboard/profile");
 
@@ -136,7 +136,7 @@ test("career profile: delete requires confirmation and cancel leaves the entry i
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(/\/dashboard$/);
+    await page.waitForURL(/\/dashboard\/jobs$/);
 
     await page.goto("/dashboard/profile");
     await page.getByPlaceholder("Institution").fill("E2E Delete Confirm University");

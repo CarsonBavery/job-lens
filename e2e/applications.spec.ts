@@ -54,7 +54,7 @@ test("saving a job, tracking its status, and losing it when the posting closes",
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(/\/dashboard$/);
+    await page.waitForURL(/\/dashboard\/jobs$/);
 
     // --- Save the posting from job search ---
     await page.goto("/dashboard/jobs?q=E2E+Applications+Test+Posting");
