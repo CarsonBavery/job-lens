@@ -50,3 +50,7 @@ next-env.d.ts
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# claude code local session state (settings.json IS committed -- this is
+# just a per-session runtime lock, not project config)
+.claude/scheduled_tasks.lock
