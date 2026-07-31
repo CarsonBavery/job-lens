@@ -1,48 +1,53 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { listJobPostings } from "@/lib/jobs/db";
 import { saveJob } from "@/lib/applications/actions";
+import { JobCategoryBadge } from "@/components/jobs/JobCategoryBadge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import type { JobCategory } from "@/types/database";
 
-// PostgREST's .or() takes a comma-separated filter string, so raw user
-// input can't be interpolated into it directly -- a comma or parenthesis in
-// the search box would otherwise inject unintended filter clauses. Strip
-// anything with syntactic meaning there (or in ILIKE's own %/_ wildcards)
-// before building the pattern ourselves.
-function sanitizeSearchTerm(term: string): string {
-  return term.replace(/[,()%_]/g, " ").trim().slice(0, 100);
-}
+const CATEGORY_OPTIONS: { value: JobCategory; label: string }[] = [
+  { value: "software", label: "Software" },
+  { value: "data_ml", label: "Data / ML" },
+  { value: "hardware", label: "Hardware" },
+  { value: "biotech", label: "Biotech" },
+  { value: "infrastructure_security", label: "Infra / Security" },
+  { value: "other_stem", label: "Other STEM" },
+];
 
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; remote?: string }>;
+  searchParams: Promise<{ q?: string; remote?: string; category?: string }>;
 }) {
-  const { q, remote } = await searchParams;
+  const { q, remote, category } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let query = supabase
-    .from("job_postings")
-    .select("id, company, title, location, remote, url, posted_at")
-    .eq("status", "active")
-    .order("posted_at", { ascending: false })
-    .limit(50);
+  const validCategory = CATEGORY_OPTIONS.some((c) => c.value === category)
+    ? (category as JobCategory)
+    : undefined;
 
-  const cleanQuery = q ? sanitizeSearchTerm(q) : "";
-  if (cleanQuery) {
-    query = query.or(`title.ilike.%${cleanQuery}%,company.ilike.%${cleanQuery}%`);
+  const postings = await listJobPostings(supabase, {
+    q,
+    remote: remote === "true",
+    category: validCategory,
+  });
+
+  function categoryHref(category?: JobCategory): string {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (remote === "true") params.set("remote", "true");
+    if (category) params.set("category", category);
+    const qs = params.toString();
+    return qs ? `/dashboard/jobs?${qs}` : "/dashboard/jobs";
   }
-  if (remote === "true") {
-    query = query.eq("remote", true);
-  }
 
-  const { data: postings, error } = await query;
-  if (error) throw error;
-
-  const postingIds = (postings ?? []).map((p) => p.id);
+  const postingIds = postings.map((p) => p.id);
   let savedIds = new Set<string>();
   if (user && postingIds.length > 0) {
     const { data: saved } = await supabase
@@ -59,7 +64,7 @@ export default async function JobsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Jobs</h1>
+      <h1 className="text-2xl font-semibold">Search STEM Jobs</h1>
 
       <form className="flex flex-wrap items-center gap-3">
         <Input name="q" defaultValue={q ?? ""} placeholder="Search by title or company…" className="flex-1" />
@@ -76,23 +81,39 @@ export default async function JobsPage({
         <Button type="submit">Search</Button>
       </form>
 
+      <div className="flex flex-wrap gap-2" data-testid="category-filter">
+        <Link
+          href={categoryHref()}
+          className={`text-sm ${!validCategory ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          All categories
+        </Link>
+        {CATEGORY_OPTIONS.map((opt) => (
+          <Link
+            key={opt.value}
+            href={categoryHref(opt.value)}
+            className={`text-sm ${validCategory === opt.value ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {opt.label}
+          </Link>
+        ))}
+      </div>
+
       <Card className="divide-y py-0" data-testid="job-results">
-        {(postings ?? []).map((posting) => (
+        {postings.map((posting) => (
           <div key={posting.id} className="flex items-center justify-between gap-3 px-4 py-3">
             <div className="flex flex-col gap-1">
-              <a
-                href={posting.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium hover:underline"
-              >
+              <Link href={`/dashboard/jobs/${posting.id}`} className="font-medium hover:underline">
                 {posting.title}
-              </a>
-              <p className="text-sm text-muted-foreground">
-                {posting.company}
-                {posting.location ? ` — ${posting.location}` : ""}
-                {posting.remote ? " — Remote" : ""}
-              </p>
+              </Link>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <JobCategoryBadge category={posting.category} />
+                <span>
+                  {posting.company}
+                  {posting.location ? ` — ${posting.location}` : ""}
+                  {posting.remote ? " — Remote" : ""}
+                </span>
+              </div>
             </div>
             {savedIds.has(posting.id) ? (
               <span className="shrink-0 text-sm text-muted-foreground">Saved</span>
@@ -106,7 +127,7 @@ export default async function JobsPage({
             )}
           </div>
         ))}
-        {(postings ?? []).length === 0 && (
+        {postings.length === 0 && (
           <p className="px-4 py-6 text-sm text-muted-foreground">
             No jobs found. If this is a fresh setup, the ingestion cron hasn&apos;t run yet.
           </p>

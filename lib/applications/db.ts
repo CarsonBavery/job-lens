@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/database";
+import type { Database, JobCategory } from "@/types/database";
 
 export type ApplicationStatus = "saved" | "applied" | "interviewing" | "offer" | "rejected";
 
@@ -23,6 +23,7 @@ export interface ApplicationRecord {
     company: string;
     url: string;
     status: "active" | "closed";
+    category: JobCategory;
   } | null;
 }
 
@@ -33,7 +34,7 @@ export async function listApplications(
   const { data, error } = await supabase
     .from("applications")
     .select(
-      "id, user_id, job_posting_id, resume_id, cover_letter_id, status, applied_at, notes, created_at, updated_at, job_posting:job_postings(title, company, url, status)",
+      "id, user_id, job_posting_id, resume_id, cover_letter_id, status, applied_at, notes, created_at, updated_at, job_posting:job_postings(title, company, url, status, category)",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });

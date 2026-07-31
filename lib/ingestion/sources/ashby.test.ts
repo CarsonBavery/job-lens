@@ -61,6 +61,7 @@ describe("fetchAshbyJobs", () => {
       description: "At Linear, we're building the product development system...",
       url: "https://jobs.ashbyhq.com/linear/d3bc1ced-3ce4-4086-a050-555055dbb1ff",
       postedAt: "2021-04-27T20:13:45.158+00:00",
+      departmentHint: null,
     });
   });
 

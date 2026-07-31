@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/database";
+import type { Database, JobCategory } from "@/types/database";
 
 export interface JobMatch {
   id: string;
@@ -8,6 +8,7 @@ export interface JobMatch {
   location: string | null;
   remote: boolean;
   url: string;
+  category: JobCategory;
   similarity: number;
 }
 

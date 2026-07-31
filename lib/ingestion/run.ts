@@ -5,6 +5,7 @@ import { fetchLeverJobs } from "./sources/lever";
 import { fetchAshbyJobs } from "./sources/ashby";
 import { fetchWorkableJobs } from "./sources/workable";
 import { buildDedupKey } from "./normalize";
+import { categorizeJobPosting } from "./categorize";
 import { embedJobPostingTexts } from "./embed";
 import { resolveDedupGroup } from "./dedup";
 import type { NormalizedJobPosting } from "./types";
@@ -221,6 +222,11 @@ export async function runIngestion(
           title: posting.title,
           location: posting.location,
         });
+        const category = categorizeJobPosting({
+          title: posting.title,
+          description: posting.description,
+          departmentHint: posting.departmentHint,
+        });
 
         const { data: upserted, error: upsertError } = await supabase
           .from("job_postings")
@@ -237,6 +243,7 @@ export async function runIngestion(
               posted_at: posting.postedAt,
               embedding,
               dedup_key: dedupKey,
+              category,
               // Explicit, not just the column default -- a posting closed
               // in a previous run must flip back to active if it's fetched
               // again (a company reopening a role, or a transient absence

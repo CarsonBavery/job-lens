@@ -15,6 +15,9 @@ const FIXTURE = {
       location: { name: "Berlin, Germany " },
       content: "&lt;div&gt;&lt;p&gt;Join our team&lt;/p&gt;&lt;/div&gt;",
       metadata: [{ id: 1, name: "Workplace Type", value: "Hybrid" }],
+      // Real shape confirmed live 2026-07-30 against a production board --
+      // not documented on Greenhouse's job-board.html page.
+      departments: [{ id: 380786, name: "Sales" }],
     },
     {
       id: 123,
@@ -50,6 +53,7 @@ describe("fetchGreenhouseJobs", () => {
       description: "Join our team",
       url: "https://careers.airbnb.com/positions/7995153?gh_jid=7995153",
       postedAt: "2026-06-10T08:50:56-04:00",
+      departmentHint: "Sales",
     });
   });
 
@@ -62,6 +66,7 @@ describe("fetchGreenhouseJobs", () => {
     const jobs = await fetchGreenhouseJobs("airbnb", "Airbnb");
     expect(jobs[1].remote).toBe(true);
     expect(jobs[1].description).toBeNull();
+    expect(jobs[1].departmentHint).toBeNull();
   });
 
   it("throws with a descriptive message on a non-ok response", async () => {

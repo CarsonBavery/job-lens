@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listApplications } from "@/lib/applications/db";
 import { listAllDocuments } from "@/lib/documents/db";
@@ -40,9 +41,9 @@ export default async function ApplicationsPage() {
           {active.length === 0 && (
             <p className="py-6 text-sm text-muted-foreground">
               No saved jobs yet. Save one from the{" "}
-              <a href="/dashboard/jobs" className="text-primary underline">
+              <Link href="/dashboard/jobs" className="text-primary underline">
                 job search
-              </a>
+              </Link>
               .
             </p>
           )}

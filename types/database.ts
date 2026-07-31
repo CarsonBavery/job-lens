@@ -11,6 +11,14 @@ export type ApplicationStatus =
   | "rejected";
 export type JobSourceName = "greenhouse" | "lever" | "ashby" | "workable";
 export type JobPostingStatus = "active" | "closed";
+export type JobCategory =
+  | "software"
+  | "data_ml"
+  | "hardware"
+  | "biotech"
+  | "infrastructure_security"
+  | "other_stem"
+  | "non_technical";
 
 export interface Database {
   public: {
@@ -102,6 +110,7 @@ export interface Database {
           dedup_group_id: string | null;
           dedup_key: string | null;
           status: JobPostingStatus;
+          category: JobCategory;
           raw: Record<string, unknown> | null;
           created_at: string;
           updated_at: string;
@@ -277,6 +286,7 @@ export interface Database {
           remote: boolean;
           url: string;
           dedup_group_id: string | null;
+          category: JobCategory;
           similarity: number;
         }[];
       };

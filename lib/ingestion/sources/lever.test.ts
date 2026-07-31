@@ -42,6 +42,7 @@ describe("fetchLeverJobs", () => {
       description: "Build our platform.",
       url: "https://jobs.lever.co/acme/abc-123",
       postedAt: new Date(1750000000000).toISOString(),
+      departmentHint: "Engineering",
     });
   });
 
@@ -54,6 +55,7 @@ describe("fetchLeverJobs", () => {
     const jobs = await fetchLeverJobs("acme", "Acme");
     expect(jobs[1].remote).toBe(true);
     expect(jobs[1].description).toBeNull();
+    expect(jobs[1].departmentHint).toBeNull();
   });
 
   it("throws a descriptive error for an unknown company slug", async () => {

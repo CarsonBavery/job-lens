@@ -131,6 +131,24 @@
   --sidebar-accent-foreground: oklch(0.45 0.18 35);
   --sidebar-border: oklch(0.9 0.008 60);
   --sidebar-ring: oklch(0.64 0.19 38);
+
+  /* Job category badge colors -- one deliberate hue per STEM discipline
+     bucket (see lib/ingestion/categorize.ts), not derived from --chart-N so
+     a future chart palette change can't silently recolor category badges. */
+  --category-software: oklch(0.9 0.05 230);
+  --category-software-foreground: oklch(0.35 0.14 230);
+  --category-data_ml: oklch(0.9 0.06 170);
+  --category-data_ml-foreground: oklch(0.32 0.1 170);
+  --category-hardware: oklch(0.92 0.07 65);
+  --category-hardware-foreground: oklch(0.4 0.13 45);
+  --category-biotech: oklch(0.91 0.06 140);
+  --category-biotech-foreground: oklch(0.35 0.11 140);
+  --category-infrastructure_security: oklch(0.91 0.05 280);
+  --category-infrastructure_security-foreground: oklch(0.38 0.12 280);
+  --category-other_stem: oklch(0.92 0.015 250);
+  --category-other_stem-foreground: oklch(0.4 0.02 250);
+  --category-non_technical: oklch(0.94 0.003 60);
+  --category-non_technical-foreground: oklch(0.48 0.006 60);
 }
 
 .dark {
@@ -165,6 +183,21 @@
   --sidebar-accent-foreground: oklch(0.86 0.09 40);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.7 0.17 38);
+
+  --category-software: oklch(0.32 0.09 230);
+  --category-software-foreground: oklch(0.85 0.09 230);
+  --category-data_ml: oklch(0.3 0.08 170);
+  --category-data_ml-foreground: oklch(0.82 0.09 170);
+  --category-hardware: oklch(0.34 0.09 55);
+  --category-hardware-foreground: oklch(0.85 0.1 55);
+  --category-biotech: oklch(0.31 0.08 140);
+  --category-biotech-foreground: oklch(0.83 0.09 140);
+  --category-infrastructure_security: oklch(0.32 0.09 280);
+  --category-infrastructure_security-foreground: oklch(0.84 0.09 280);
+  --category-other_stem: oklch(0.32 0.015 250);
+  --category-other_stem-foreground: oklch(0.82 0.015 250);
+  --category-non_technical: oklch(0.3 0.004 60);
+  --category-non_technical-foreground: oklch(0.72 0.006 60);
 }
 
 @layer base {

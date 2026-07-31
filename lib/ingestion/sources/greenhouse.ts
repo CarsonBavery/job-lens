@@ -9,6 +9,10 @@ interface GreenhouseJob {
   location: { name: string } | null;
   content?: string;
   metadata?: { name: string; value: unknown }[] | null;
+  // Confirmed live against a real board (2026-07-30) -- Greenhouse's public
+  // API returns this even though it isn't documented on the job-board.html
+  // page; first entry is the most specific department for the role.
+  departments?: { id: number; name: string }[];
 }
 
 interface GreenhouseResponse {
@@ -61,5 +65,6 @@ export async function fetchGreenhouseJobs(
     description: job.content ? stripHtml(job.content) : null,
     url: job.absolute_url,
     postedAt: job.first_published ?? job.updated_at ?? null,
+    departmentHint: job.departments?.[0]?.name?.trim() || null,
   }));
 }

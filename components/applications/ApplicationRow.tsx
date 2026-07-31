@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
+import { JobCategoryBadge } from "@/components/jobs/JobCategoryBadge";
 
 const STATUSES: ApplicationStatus[] = ["saved", "applied", "interviewing", "offer", "rejected"];
 
@@ -32,6 +33,7 @@ export function ApplicationRow({
           {posting?.company && (
             <span className="text-sm text-muted-foreground">{posting.company}</span>
           )}
+          {posting?.category && <JobCategoryBadge category={posting.category} />}
           <Badge variant="secondary" className="capitalize">
             {application.status}
           </Badge>
