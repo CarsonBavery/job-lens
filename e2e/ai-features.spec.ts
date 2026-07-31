@@ -120,3 +120,74 @@ test("resume tailoring and cover letter generation work end-to-end", async ({ pa
   await page.goto(baseCoverLetterUrl);
   await expect(page.getByText("Tailored versions")).toBeVisible();
 });
+
+test("tailoring for a job listing auto-saves it and links the tailored resume", async ({
+  page,
+}) => {
+  // 1 real Gemini call (tailor), same rate-limit headroom as the test above.
+  test.setTimeout(240000);
+
+  // A synthetic posting, inserted directly rather than via a real ingestion
+  // run -- this test is about proving the job-detail-page -> tailor ->
+  // applications bridge (lib/resumes/actions.ts's tailorResume extension),
+  // not re-proving ingestion correctness (covered by job-ingestion.spec.ts).
+  const { data: source } = await admin.from("job_sources").select("id").eq("name", "greenhouse").single();
+  const { data: posting, error: postingError } = await admin
+    .from("job_postings")
+    .insert({
+      source_id: source!.id,
+      external_id: `e2e-tailor-bridge-${Date.now()}`,
+      company: "Acme Corp",
+      title: "Senior Backend Engineer",
+      description: "Scale our high-throughput payments API and mentor junior engineers.",
+      url: "https://example.com/e2e-tailor-bridge",
+      category: "software",
+      status: "active",
+    })
+    .select("id")
+    .single();
+  if (postingError) throw postingError;
+
+  try {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(TEST_EMAIL);
+    await page.getByLabel("Password").fill(TEST_PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL(/\/dashboard\/jobs$/);
+
+    // --- A dedicated resume for this test, not the shared one from the
+    //     test above -- avoids coupling to another test's setup ---
+    await page.goto("/dashboard/resumes");
+    await page.getByPlaceholder("e.g. Frontend Engineer").fill("E2E Job Bridge Resume");
+    await page.getByRole("button", { name: "New Resume" }).click();
+    await page.waitForURL(/\/dashboard\/resumes\/[0-9a-f-]{36}$/);
+    const editor = page.locator(".tiptap");
+    await editor.click();
+    await page.keyboard.type("Built and scaled backend payment systems.");
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 10000 });
+
+    // --- Tailor straight from the job detail page -- no paste required,
+    //     since this posting has a real description ---
+    await page.goto(`/dashboard/jobs/${posting!.id}`);
+    await page.getByLabel("Resume to tailor").selectOption({ label: "E2E Job Bridge Resume" });
+    await page.getByRole("button", { name: "Tailor a resume for this job" }).click();
+
+    await page.waitForURL(/\/dashboard\/resumes\/[0-9a-f-]{36}$/);
+    await expect(page.getByTestId("document-title")).toHaveValue(/tailored/i);
+    const tailoredResumeId = page.url().split("/").pop();
+
+    // --- The bridge should have auto-saved the posting as an application
+    //     and linked the freshly tailored resume to it ---
+    await page.goto("/dashboard/applications");
+    const summary = page.locator("summary").filter({ hasText: "Senior Backend Engineer" });
+    await expect(summary).toBeVisible();
+    await summary.click();
+    const resumeSelect = page
+      .locator("details")
+      .filter({ hasText: "Senior Backend Engineer" })
+      .getByLabel("Resume used");
+    await expect(resumeSelect).toHaveValue(tailoredResumeId!);
+  } finally {
+    await admin.from("job_postings").delete().eq("id", posting!.id);
+  }
+});
