@@ -18,7 +18,12 @@ create index if not exists job_postings_category_idx on public.job_postings (cat
 
 -- Both matching RPCs re-declared (not just altered) to surface `category` --
 -- match_job_postings (dedup use) doesn't need it, match_jobs_for_resume does
--- so MatchingJobsPanel can show a category badge per result.
+-- so MatchingJobsPanel can show a category badge per result. `create or
+-- replace` can't change a function's OUT-parameter row shape (Postgres
+-- error 42P13) -- adding `category` to the return table counts as a shape
+-- change, so the old definition has to be dropped first.
+drop function if exists public.match_jobs_for_resume(vector, double precision, integer);
+
 create or replace function public.match_jobs_for_resume(
   query_embedding vector(768),
   match_threshold float default 0.3,
