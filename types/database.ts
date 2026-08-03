@@ -111,6 +111,10 @@ export interface Database {
           dedup_key: string | null;
           status: JobPostingStatus;
           category: JobCategory;
+          // Generated always as ... stored (0009_job_search_index.sql) --
+          // never written by application code, only ever read implicitly
+          // via .textSearch() in lib/jobs/db.ts.
+          search_vector: string | null;
           raw: Record<string, unknown> | null;
           created_at: string;
           updated_at: string;
