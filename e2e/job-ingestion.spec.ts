@@ -66,6 +66,22 @@ test("ingestion pipeline fetches, embeds, and upserts real postings idempotently
   expect(sample?.dedup_group_id).toBeTruthy();
   expect(sample?.embedding).toBeTruthy();
   expect(sample?.status).toBe("active");
+
+  // categorizeJobPosting runs for real here, not mocked -- proves the
+  // wiring in run.ts actually persists a category, not just that the pure
+  // classifier (covered by lib/ingestion/categorize.test.ts) works in
+  // isolation. Every row defaults to 'non_technical' at the column level
+  // (0008_job_category.sql), so asserting *at least one* row ended up
+  // something else is the real proof classification engaged -- Linear is
+  // a software company, so a batch of ~25 postings with zero software/
+  // data_ml/etc. roles would indicate the wiring silently no-opped.
+  const { data: categorized } = await admin
+    .from("job_postings")
+    .select("category")
+    .eq("company", "Linear")
+    .limit(30);
+  expect(categorized!.length).toBeGreaterThan(0);
+  expect(categorized!.some((row) => row.category !== "non_technical")).toBe(true);
 });
 
 test("a posting no longer returned by the source gets marked closed", async () => {
@@ -122,12 +138,45 @@ test("ingested jobs are visible and searchable in the dashboard", async ({ page 
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(/\/dashboard$/);
+    await page.waitForURL(/\/dashboard\/jobs$/);
 
     await page.goto("/dashboard/jobs?q=Linear");
     const results = page.getByTestId("job-results");
     await expect(results.getByRole("link")).not.toHaveCount(0);
     await expect(results.getByText("Linear").first()).toBeVisible();
+  } finally {
+    await admin.auth.admin.deleteUser(data.user.id);
+  }
+});
+
+test("the category filter narrows results to the selected category", async ({ page }) => {
+  const email = `e2e-category-filter-${Date.now()}@example.com`;
+  const password = "e2e-Test-Password-123!";
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (error) throw error;
+
+  try {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL(/\/dashboard\/jobs$/);
+
+    // Real, previously-ingested Linear postings (see the test above) are
+    // spread across whatever categories their titles actually classified
+    // into -- filtering to just "Software" must not show anything tagged
+    // with a different category badge.
+    await page.goto("/dashboard/jobs?category=software");
+    const results = page.getByTestId("job-results");
+    await expect(results.getByRole("link")).not.toHaveCount(0);
+
+    const badgeTexts = await results.getByText("Software", { exact: true }).allTextContents();
+    const resultCount = await results.getByRole("link").count();
+    expect(badgeTexts.length).toBe(resultCount);
   } finally {
     await admin.auth.admin.deleteUser(data.user.id);
   }

@@ -46,5 +46,9 @@ export async function fetchWorkableJobs(
     description: null,
     url: job.shortlink || job.url,
     postedAt: job.created_at ?? null,
+    // No structured department field on Workable's list endpoint either --
+    // categorize.ts falls back to title keywords only for this source
+    // (there's no description to draw from, see above).
+    departmentHint: null,
   }));
 }

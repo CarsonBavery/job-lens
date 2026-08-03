@@ -54,7 +54,7 @@ test("saving a job, tracking its status, and losing it when the posting closes",
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(/\/dashboard$/);
+    await page.waitForURL(/\/dashboard\/jobs$/);
 
     // --- Save the posting from job search ---
     await page.goto("/dashboard/jobs?q=E2E+Applications+Test+Posting");
@@ -99,11 +99,13 @@ test("saving a job, tracking its status, and losing it when the posting closes",
     expect(notifications![0].read).toBe(false);
 
     await page.reload();
-    await page.getByText("Notifications (1)").click();
+    const notificationsSummary = page.locator("summary").filter({ hasText: "Notifications" });
+    await expect(notificationsSummary).toContainText("1");
+    await notificationsSummary.click();
     await page.getByRole("button", { name: "Dismiss" }).click();
     await page.waitForTimeout(1000);
     await page.reload();
-    await expect(page.getByText("Notifications (1)")).not.toBeVisible();
+    await expect(page.locator("summary").filter({ hasText: "Notifications" })).not.toContainText("1");
   } finally {
     await admin.from("job_postings").delete().eq("id", posting!.id);
     await admin.from("resumes").delete().eq("id", resume!.id);

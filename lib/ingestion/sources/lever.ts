@@ -35,5 +35,6 @@ export async function fetchLeverJobs(
     description: job.descriptionPlain?.trim() || null,
     url: job.hostedUrl,
     postedAt: job.createdAt ? new Date(job.createdAt).toISOString() : null,
+    departmentHint: job.categories?.team?.trim() || null,
   }));
 }

@@ -29,7 +29,7 @@ test("career profile: GitHub project summarization, editing, and tailoring integ
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(/\/dashboard$/);
+    await page.waitForURL(/\/dashboard\/jobs$/);
 
     await page.goto("/dashboard/profile");
 
@@ -114,6 +114,54 @@ test("career profile: GitHub project summarization, editing, and tailoring integ
 
     const tailoredText = await page.locator(".tiptap").innerText();
     expect(tailoredText).toMatch(/quantum|rust|scheduler|grpc/i);
+  } finally {
+    await admin.auth.admin.deleteUser(data.user.id);
+  }
+});
+
+test("career profile: delete requires confirmation and cancel leaves the entry intact", async ({
+  page,
+}) => {
+  const email = `e2e-delete-confirm-${Date.now()}@example.com`;
+  const password = "e2e-Test-Password-123!";
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (error) throw error;
+
+  try {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL(/\/dashboard\/jobs$/);
+
+    await page.goto("/dashboard/profile");
+    await page.getByPlaceholder("Institution").fill("E2E Delete Confirm University");
+    await page.getByRole("button", { name: "Add education" }).click();
+
+    const entrySummary = page
+      .locator("summary")
+      .filter({ hasText: "E2E Delete Confirm University" });
+    await expect(entrySummary).toBeVisible();
+    await entrySummary.click();
+
+    // Cancel: the confirmation dialog opens, but declining it must not
+    // submit the delete Server Action -- the entry stays.
+    await page.getByRole("button", { name: "Delete" }).first().click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(entrySummary).toBeVisible();
+
+    // Confirm: the same trigger, but accepting the dialog this time
+    // actually submits the delete.
+    await page.getByRole("button", { name: "Delete" }).first().click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
+    await expect(entrySummary).not.toBeVisible();
   } finally {
     await admin.auth.admin.deleteUser(data.user.id);
   }

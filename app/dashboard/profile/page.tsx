@@ -31,7 +31,7 @@ export default async function ProfilePage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-10">
       <div>
         <h1 className="text-2xl font-semibold">Career Profile</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Projects, education, and work history Gemini can draw on when tailoring your resumes and
           cover letters.
         </p>

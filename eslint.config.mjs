@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Vendored third-party Claude Code skill/plugin scripts, not app code.
+      ".claude/**",
     ],
   },
 ];

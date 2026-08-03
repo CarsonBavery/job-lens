@@ -20,6 +20,12 @@ import { tiptapToPlainText } from "@/lib/tiptap/toPlainText";
 import { blocksToTiptap } from "@/lib/tiptap/fromBlocks";
 import { checkAiRateLimit } from "@/lib/aiUsage/rateLimit";
 import { recordAiGeneration } from "@/lib/aiUsage/db";
+import { getJobPosting } from "@/lib/jobs/db";
+import {
+  createApplication,
+  findApplicationByJobPosting,
+  updateApplication,
+} from "@/lib/applications/db";
 
 async function requireUserAndTier() {
   const supabase = await createClient();
@@ -84,12 +90,29 @@ export async function generateCoverLetter(
   const { supabase, user, tier } = await requireUserAndTier();
 
   const resumeId = formData.get("resumeId") as string;
-  const jobDescription = (formData.get("jobDescription") as string)?.trim();
+  const jobPostingId = (formData.get("jobPostingId") as string) || null;
+  let jobDescription = (formData.get("jobDescription") as string)?.trim();
   if (!resumeId) {
     return { error: "Choose a resume to base the cover letter on." };
   }
+
+  // Arriving from a job listing's "Generate a cover letter for this job"
+  // button -- source the description server-side instead of requiring a
+  // paste (see the identical pattern in lib/resumes/actions.ts tailorResume).
+  if (jobPostingId && !jobDescription) {
+    const jobPosting = await getJobPosting(supabase, jobPostingId);
+    if (jobPosting?.description) {
+      jobDescription = jobPosting.description;
+    }
+  }
+
   if (!jobDescription) {
-    return { error: "Paste the job description first." };
+    return jobPostingId
+      ? {
+          error:
+            "This posting doesn't have a description we can use -- paste the job description to continue.",
+        }
+      : { error: "Paste the job description first." };
   }
 
   const rateLimitError = await checkAiRateLimit(supabase, user.id, tier);
@@ -133,6 +156,13 @@ export async function generateCoverLetter(
     },
     baseCoverLetterId ? { base_cover_letter_id: baseCoverLetterId } : {},
   );
+
+  if (jobPostingId) {
+    const existing = await findApplicationByJobPosting(supabase, user.id, jobPostingId);
+    const applicationId =
+      existing?.id ?? (await createApplication(supabase, user.id, jobPostingId));
+    await updateApplication(supabase, applicationId, { cover_letter_id: id });
+  }
 
   redirect(`/dashboard/cover-letters/${id}`);
 }

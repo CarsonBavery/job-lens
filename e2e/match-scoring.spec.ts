@@ -40,7 +40,7 @@ test("finding matching jobs embeds a resume and ranks real postings against it",
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(/\/dashboard$/);
+    await page.waitForURL(/\/dashboard\/jobs$/);
 
     await page.goto("/dashboard/resumes");
     await page.getByPlaceholder("e.g. Frontend Engineer").fill("E2E Match Test Resume");

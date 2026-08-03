@@ -23,6 +23,12 @@ import { listWorkExperience } from "@/lib/workExperience/db";
 import { formatCareerProfileForPrompt } from "@/lib/profile/formatForPrompt";
 import { checkAiRateLimit } from "@/lib/aiUsage/rateLimit";
 import { recordAiGeneration } from "@/lib/aiUsage/db";
+import { getJobPosting } from "@/lib/jobs/db";
+import {
+  createApplication,
+  findApplicationByJobPosting,
+  updateApplication,
+} from "@/lib/applications/db";
 
 async function requireUserAndTier() {
   const supabase = await createClient();
@@ -84,9 +90,29 @@ export async function tailorResume(
   const { supabase, user, tier } = await requireUserAndTier();
 
   const resumeId = formData.get("resumeId") as string;
-  const jobDescription = (formData.get("jobDescription") as string)?.trim();
+  const jobPostingId = (formData.get("jobPostingId") as string) || null;
+  let jobDescription = (formData.get("jobDescription") as string)?.trim();
+
+  // Arriving from a job listing's "Tailor a resume for this job" button --
+  // source the description server-side instead of requiring a paste. Some
+  // sources never have one (Workable's list endpoint, see
+  // lib/ingestion/sources/workable.ts), so this can still fall through to
+  // requiring manual paste below.
+  let jobPosting: Awaited<ReturnType<typeof getJobPosting>> = null;
+  if (jobPostingId && !jobDescription) {
+    jobPosting = await getJobPosting(supabase, jobPostingId);
+    if (jobPosting?.description) {
+      jobDescription = jobPosting.description;
+    }
+  }
+
   if (!jobDescription) {
-    return { error: "Paste the job description first." };
+    return jobPostingId
+      ? {
+          error:
+            "This posting doesn't have a description we can use -- paste the job description to continue.",
+        }
+      : { error: "Paste the job description first." };
   }
 
   const rateLimitError = await checkAiRateLimit(supabase, user.id, tier);
@@ -129,6 +155,16 @@ export async function tailorResume(
     },
     { base_resume_id: source.id },
   );
+
+  // Tailoring for a specific listing implicitly saves it (if not already)
+  // and links the freshly tailored resume to it -- the same thing a user
+  // does by hand on /dashboard/applications, just automatic here.
+  if (jobPostingId) {
+    const existing = await findApplicationByJobPosting(supabase, user.id, jobPostingId);
+    const applicationId =
+      existing?.id ?? (await createApplication(supabase, user.id, jobPostingId));
+    await updateApplication(supabase, applicationId, { resume_id: id });
+  }
 
   redirect(`/dashboard/resumes/${id}`);
 }

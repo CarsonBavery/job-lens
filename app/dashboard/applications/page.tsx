@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listApplications } from "@/lib/applications/db";
 import { listAllDocuments } from "@/lib/documents/db";
@@ -28,7 +29,7 @@ export default async function ApplicationsPage() {
 
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Active</h2>
-        <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+        <div className="flex flex-col gap-2">
           {active.map((application) => (
             <ApplicationRow
               key={application.id}
@@ -38,25 +39,25 @@ export default async function ApplicationsPage() {
             />
           ))}
           {active.length === 0 && (
-            <p className="py-6 text-sm text-gray-500">
+            <p className="py-6 text-sm text-muted-foreground">
               No saved jobs yet. Save one from the{" "}
-              <a href="/dashboard/jobs" className="underline">
+              <Link href="/dashboard/jobs" className="text-primary underline">
                 job search
-              </a>
+              </Link>
               .
             </p>
           )}
-        </ul>
+        </div>
       </section>
 
       {closed.length > 0 && (
         <section className="flex flex-col gap-2">
           <h2 className="text-lg font-semibold">Closed postings</h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             These postings are no longer available. They&apos;ve been moved out of your active board
             but kept here for your records.
           </p>
-          <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+          <div className="flex flex-col gap-2">
             {closed.map((application) => (
               <ApplicationRow
                 key={application.id}
@@ -65,7 +66,7 @@ export default async function ApplicationsPage() {
                 coverLetters={coverLetters}
               />
             ))}
-          </ul>
+          </div>
         </section>
       )}
     </div>

@@ -43,5 +43,9 @@ export async function fetchAshbyJobs(
       description: job.descriptionPlain?.trim() || null,
       url: job.jobUrl,
       postedAt: job.publishedAt,
+      // Ashby's unauthenticated public job-board API has no structured
+      // department/team field -- categorize.ts falls back to title/
+      // description keywords for this source.
+      departmentHint: null,
     }));
 }

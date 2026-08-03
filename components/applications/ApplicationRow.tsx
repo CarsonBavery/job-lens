@@ -1,8 +1,18 @@
 import type { ApplicationRecord, ApplicationStatus } from "@/lib/applications/db";
 import type { DocumentRecord } from "@/lib/documents/db";
 import { updateApplicationAction, deleteApplicationAction } from "@/lib/applications/actions";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { DeleteConfirmButton } from "@/components/ui/delete-confirm-button";
+import { JobCategoryBadge } from "@/components/jobs/JobCategoryBadge";
 
 const STATUSES: ApplicationStatus[] = ["saved", "applied", "interviewing", "offer", "rejected"];
+
+const selectClass =
+  "mt-1 block h-10 w-full rounded-lg border border-input bg-transparent px-3 py-1.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 export function ApplicationRow({
   application,
@@ -16,104 +26,114 @@ export function ApplicationRow({
   const posting = application.job_posting;
 
   return (
-    <li className="py-3">
+    <Card className="py-0">
       <details>
-        <summary className="cursor-pointer">
+        <summary className="flex cursor-pointer flex-wrap items-center gap-2 p-4">
           <span className="font-medium">{posting?.title ?? "(job posting removed)"}</span>
-          {posting?.company && <span className="ml-2 text-sm text-gray-500">{posting.company}</span>}
-          <span className="ml-2 text-sm text-gray-500 capitalize">{application.status}</span>
-          {posting?.status === "closed" && (
-            <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">Posting closed</span>
+          {posting?.company && (
+            <span className="text-sm text-muted-foreground">{posting.company}</span>
           )}
+          {posting?.category && <JobCategoryBadge category={posting.category} />}
+          <Badge variant="secondary" className="capitalize">
+            {application.status}
+          </Badge>
+          {posting?.status === "closed" && <Badge variant="outline">Posting closed</Badge>}
         </summary>
 
-        {posting?.url && (
-          <a
-            href={posting.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-block text-sm hover:underline"
-          >
-            View posting
-          </a>
-        )}
-
-        <form action={updateApplicationAction} className="mt-3 flex flex-col gap-2">
-          <input type="hidden" name="id" value={application.id} />
-          <input type="hidden" name="currentAppliedAt" value={application.applied_at ?? ""} />
-
-          <label className="text-xs text-gray-500">
-            Status
-            <select
-              name="status"
-              defaultValue={application.status}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
+        <CardContent className="flex flex-col gap-3 pb-4">
+          {posting?.url && (
+            <a
+              href={posting.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline"
             >
-              {STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </label>
+              View posting
+            </a>
+          )}
 
-          <label className="text-xs text-gray-500">
-            Resume used
-            <select
-              name="resumeId"
-              defaultValue={application.resume_id ?? ""}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
-            >
-              <option value="">— none —</option>
-              {resumes.map((resume) => (
-                <option key={resume.id} value={resume.id}>
-                  {resume.title}
-                </option>
-              ))}
-            </select>
-          </label>
+          <form action={updateApplicationAction} className="flex flex-col gap-3">
+            <input type="hidden" name="id" value={application.id} />
+            <input type="hidden" name="currentAppliedAt" value={application.applied_at ?? ""} />
 
-          <label className="text-xs text-gray-500">
-            Cover letter used
-            <select
-              name="coverLetterId"
-              defaultValue={application.cover_letter_id ?? ""}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
-            >
-              <option value="">— none —</option>
-              {coverLetters.map((coverLetter) => (
-                <option key={coverLetter.id} value={coverLetter.id}>
-                  {coverLetter.title}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div>
+              <Label htmlFor={`status-${application.id}`}>Status</Label>
+              <select
+                id={`status-${application.id}`}
+                name="status"
+                defaultValue={application.status}
+                className={selectClass}
+              >
+                {STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <label className="text-xs text-gray-500">
-            Notes
-            <textarea
-              name="notes"
-              defaultValue={application.notes ?? ""}
-              rows={2}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
-            />
-          </label>
+            <div>
+              <Label htmlFor={`resume-${application.id}`}>Resume used</Label>
+              <select
+                id={`resume-${application.id}`}
+                name="resumeId"
+                defaultValue={application.resume_id ?? ""}
+                className={selectClass}
+              >
+                <option value="">— none —</option>
+                {resumes.map((resume) => (
+                  <option key={resume.id} value={resume.id}>
+                    {resume.title}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <button
-            type="submit"
-            className="self-start rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background"
-          >
-            Save
-          </button>
-        </form>
+            <div>
+              <Label htmlFor={`cover-letter-${application.id}`}>Cover letter used</Label>
+              <select
+                id={`cover-letter-${application.id}`}
+                name="coverLetterId"
+                defaultValue={application.cover_letter_id ?? ""}
+                className={selectClass}
+              >
+                <option value="">— none —</option>
+                {coverLetters.map((coverLetter) => (
+                  <option key={coverLetter.id} value={coverLetter.id}>
+                    {coverLetter.title}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <form action={deleteApplicationAction} className="mt-2">
-          <input type="hidden" name="id" value={application.id} />
-          <button type="submit" className="text-sm text-red-600 hover:underline">
-            Remove
-          </button>
-        </form>
+            <div>
+              <Label htmlFor={`notes-${application.id}`}>Notes</Label>
+              <Textarea
+                id={`notes-${application.id}`}
+                name="notes"
+                defaultValue={application.notes ?? ""}
+                rows={2}
+                className="mt-1"
+              />
+            </div>
+
+            <Button type="submit" size="sm" className="self-start">
+              Save
+            </Button>
+          </form>
+
+          <form id={`delete-application-${application.id}`} action={deleteApplicationAction}>
+            <input type="hidden" name="id" value={application.id} />
+          </form>
+          <DeleteConfirmButton
+            formId={`delete-application-${application.id}`}
+            itemLabel="application"
+            triggerLabel="Remove"
+            size="sm"
+            className="text-destructive"
+          />
+        </CardContent>
       </details>
-    </li>
+    </Card>
   );
 }
