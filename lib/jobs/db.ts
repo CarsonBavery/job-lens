@@ -18,13 +18,25 @@ export interface JobPostingDetail extends JobPostingSummary {
   description: string | null;
 }
 
-// PostgREST's .or() takes a comma-separated filter string, so raw user
-// input can't be interpolated into it directly -- a comma or parenthesis in
-// the search box would otherwise inject unintended filter clauses. Strip
-// anything with syntactic meaning there (or in ILIKE's own %/_ wildcards)
-// before building the pattern ourselves.
-function sanitizeSearchTerm(term: string): string {
-  return term.replace(/[,()%_]/g, " ").trim().slice(0, 100);
+export interface JobPostingPage {
+  postings: JobPostingSummary[];
+  hasMore: boolean;
+}
+
+export const JOBS_PAGE_SIZE = 25;
+
+// Builds a raw tsquery string (see 0009_job_search_index.sql's search_vector
+// column) from free-text user input: strips tsquery's own operator syntax
+// so it can't be injected, then ANDs together a prefix match per word --
+// "soft eng" -> "soft:* & eng:*" -- so partial words behave like the ILIKE
+// search this replaced (e.g. "Soft" still finds "Software").
+function buildSearchQuery(term: string): string {
+  const cleaned = term
+    .replace(/[&|!():*'"<>]/g, " ")
+    .trim()
+    .slice(0, 100);
+  const tokens = cleaned.split(/\s+/).filter(Boolean);
+  return tokens.map((token) => `${token}:*`).join(" & ");
 }
 
 const SUMMARY_COLUMNS =
@@ -32,18 +44,24 @@ const SUMMARY_COLUMNS =
 
 export async function listJobPostings(
   supabase: SupabaseClient<Database>,
-  params: { q?: string; remote?: boolean; category?: JobCategory },
-): Promise<JobPostingSummary[]> {
+  params: { q?: string; remote?: boolean; category?: JobCategory; page?: number },
+): Promise<JobPostingPage> {
+  const page = Math.max(1, params.page ?? 1);
+  const from = (page - 1) * JOBS_PAGE_SIZE;
+  // Fetch one extra row past the page size so "is there a next page?" is
+  // answerable without a separate (expensive, at scale) COUNT(*) query.
+  const to = from + JOBS_PAGE_SIZE;
+
   let query = supabase
     .from("job_postings")
     .select(SUMMARY_COLUMNS)
     .eq("status", "active")
     .order("posted_at", { ascending: false })
-    .limit(50);
+    .range(from, to);
 
-  const cleanQuery = params.q ? sanitizeSearchTerm(params.q) : "";
-  if (cleanQuery) {
-    query = query.or(`title.ilike.%${cleanQuery}%,company.ilike.%${cleanQuery}%`);
+  const searchQuery = params.q ? buildSearchQuery(params.q) : "";
+  if (searchQuery) {
+    query = query.textSearch("search_vector", searchQuery, { config: "english" });
   }
   if (params.remote) {
     query = query.eq("remote", true);
@@ -54,7 +72,10 @@ export async function listJobPostings(
 
   const { data, error } = await query;
   if (error) throw error;
-  return data ?? [];
+
+  const rows = data ?? [];
+  const hasMore = rows.length > JOBS_PAGE_SIZE;
+  return { postings: hasMore ? rows.slice(0, JOBS_PAGE_SIZE) : rows, hasMore };
 }
 
 export function formatSalary(min: number | null, max: number | null): string | null {

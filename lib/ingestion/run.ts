@@ -6,6 +6,7 @@ import { fetchAshbyJobs } from "./sources/ashby";
 import { fetchWorkableJobs } from "./sources/workable";
 import { buildDedupKey } from "./normalize";
 import { categorizeJobPosting } from "./categorize";
+import { extractSalaryRange } from "./extractSalary";
 import { embedJobPostingTexts } from "./embed";
 import { resolveDedupGroup } from "./dedup";
 import type { NormalizedJobPosting } from "./types";
@@ -227,6 +228,7 @@ export async function runIngestion(
           description: posting.description,
           departmentHint: posting.departmentHint,
         });
+        const salary = extractSalaryRange(posting.description);
 
         const { data: upserted, error: upsertError } = await supabase
           .from("job_postings")
@@ -244,6 +246,8 @@ export async function runIngestion(
               embedding,
               dedup_key: dedupKey,
               category,
+              salary_min: salary?.min ?? null,
+              salary_max: salary?.max ?? null,
               // Explicit, not just the column default -- a posting closed
               // in a previous run must flip back to active if it's fetched
               // again (a company reopening a role, or a transient absence

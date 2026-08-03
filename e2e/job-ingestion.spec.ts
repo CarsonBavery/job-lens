@@ -55,12 +55,21 @@ test("ingestion pipeline fetches, embeds, and upserts real postings idempotently
   expect(countAfterSecondRun).toBe(countAfterFirstRun);
 
   // Every ingested posting should have gotten a dedup_group_id (its own id,
-  // since nothing else in the seed set matches it), and stay 'active' since
-  // it was fetched again on the second run (not wrongly closed).
+  // since nothing else in the seed set matches it). Scoped to status =
+  // 'active': Linear postings from every past test run accumulate in this
+  // table (never cleaned up, see the file comment above), and Linear's
+  // real live listings do close for real between runs over time -- an
+  // unscoped `.limit(1)` here has genuinely picked a stale, legitimately-
+  // closed row before (not a regression, the closure detection was
+  // correct) and asserted the wrong thing about it. This test proves "an
+  // actively-fetched posting has proper fields set," not "no posting from
+  // this company is ever closed" -- that's covered separately by the
+  // closure test below.
   const { data: sample } = await admin
     .from("job_postings")
     .select("id, dedup_group_id, embedding, status")
     .eq("company", "Linear")
+    .eq("status", "active")
     .limit(1)
     .single();
   expect(sample?.dedup_group_id).toBeTruthy();
